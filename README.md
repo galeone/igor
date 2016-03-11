@@ -8,7 +8,7 @@ igor is an abstraction layer for PostgreSQL, written in Go. Igor syntax is (almo
 
 You should use igor when your DBMS is PostgreSQL and you want to place an abstraction layer on top of it and do CRUD operations in a smart, easy, secure and fast way.
 
-Thus with igor you __do not__ create a new schema. In general igor do not support DDL (you can do it with the `Raw` and `Exec`, but there are not method created ad-hoc for thir purpose).
+Thus with igor you __do not__ create a new schema. In general igor does not support DDL (you can do it with the `Raw` and `Exec`, but there are not method created ad-hoc for this purpose).
 
 ## What igor does
 
@@ -18,16 +18,16 @@ Thus with igor you __do not__ create a new schema. In general igor do not suppor
 - Uses the same logic in insertion and update: handle default values in a coherent manner
 - Uses GORM models and conventions (partially, see [Differences](#differences))
 - Exploits PostgreSQL `RETURNING` statement to update models fiels with the updated values (even when changed on db side; e.g. when having a default value)
-- Automatically handle reserved keywords when used as a table name or fields. Do not quote every field (that's not recommended) but only the ones conflicting with a reserved keyword.
+- Automatically handle reserved keywords when used as a table name or fields. Does not quote every field (that's not recommended) but only the ones conflicting with a reserved keyword.
  
 
 ## What igor is not
 
 - An ORM (and thus a complete GORM replacement):
-  - Do not support associations
-  - Do not support callbacks
-  - Do not have any specific method for data migration and DDL operations
-  - Do not support soft delete
+  - Does not support associations
+  - Does not support callbacks
+  - Does not have any specific method for data migration and DDL operations
+  - Does not support soft delete
 
 ## Install
 
@@ -46,7 +46,7 @@ Models are the [same used in GORM.](http://jinzhu.me/gorm/models.html#model-defi
 
 The main differences are:
 
-- Do not handle associations. Thus, if you have a field that refers to another table, disable it with the annotation `sql:"-"` (see the code below).
+- Igor does not handle associations. Thus, if you have a field that refers to another table, disable it with the annotation `sql:"-"` (see the code below).
 - Every model __must__ implement the `igor.DBTable` interface. Therefore every model must have the method `TableName() string`, that returns the table name associated with the model.
 - Every model __must__ explicit the primary key field (using the tag `gorm:"primary_key"`).
 
@@ -213,7 +213,7 @@ Create `INSERT` a new row into the table specified by the DBModel.
 
 `Create` handles default values using the following rules:
 
-If a field is blank and has a default value and this defualt value is the Go Zero value for that field, do not generate the query part associated with the insertion of that fields (let the DBMS handle the default value generation).
+If a field is blank and has a default value and this defualt value is the Go Zero value for that field, igor does not generate the query part associated with the insertion of that fields (let the DBMS handle the default value generation).
 
 If a field is blank and has a default value that's different from the Go Zero value for fhat filed, insert the specified default value.
 
@@ -487,7 +487,7 @@ In igor:
 ### Scan
 In addiction to the previous section, there's another difference between GORM ad igor.
 
-`Scan` method __do not__ scan selected fields into results using the selected fields name, but using the order (to increse the performance).
+`Scan` method __do not__ scans the selected fields into results using the selected fields name, but uses the order (to increse the performance).
 
 Thus, having:
 ```go
