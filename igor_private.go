@@ -203,7 +203,7 @@ func handleIdentifier(clause string) string {
 	lowerClause := strings.ToLower(clause)
 	i := sort.SearchStrings(reservedKeywords, lowerClause)
 	if i < len(reservedKeywords) && reservedKeywords[i] == lowerClause {
-		return "\"" + lowerClause + "\""
+		return `"` + lowerClause + `"`
 	}
 	return namingConvention(clause)
 }

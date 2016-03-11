@@ -126,7 +126,7 @@ posts := new(UserPost).TableName()
 var userPosts []UserPost
 db.Model(UserPost{}).Order("hpid DESC").
     Joins("JOIN "+users+" ON "+users+".counter = "+posts+".to").
-    Where("\"to\" = ?", user.Counter).Scan(&userPost)
+    Where(`"to" = ?`, user.Counter).Scan(&userPost)
 ```
 
 generates:
@@ -183,7 +183,7 @@ WHERE posts.from = $1 AND posts.to = $2
 When using a string, you can use the `?` as placeholder for parameters substitution. Thus
 
 ```go
-db.Model(UserPost{}).Where("\"to\" = ?", user.Counter)
+db.Model(UserPost{}).Where(`"to" = ?`, user.Counter)
 ```
 
 generates:
@@ -197,7 +197,7 @@ WHERE "to" = $1
 Wheere supports slices as well:
 
 ```go
-db.Model(UserPost{}).Where("\"to\" IN (?) OR \"from\" = ?", []uint64{1,2,3,4,6}, 88)
+db.Model(UserPost{}).Where(`"to" IN (?) OR "from" = ?`, []uint64{1,2,3,4,6}, 88)
 ```
 
 generates:
@@ -290,7 +290,7 @@ func (Blacklist) TableName() string {
 }
 
 var blacklist []uint64
-db.Model(Blacklist{}).Where(&Blacklist{From: user.Counter}).Pluck("\"to\"", &blacklist)
+db.Model(Blacklist{}).Where(&Blacklist{From: user.Counter}).Pluck(`"to"`, &blacklist)
 ```
 
 generates
