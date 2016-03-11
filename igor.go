@@ -44,7 +44,7 @@ func (db *Database) Joins(joins string) *Database {
 	return db
 }
 
-// Table append the tablename strong to FROM. It has the same behavior of Model, but
+// Table appends the table string to FROM. It has the same behavior of Model, but
 // passing the tablename directly as a string
 func (db *Database) Table(table string) *Database {
 	return db.Joins(table)
@@ -234,8 +234,10 @@ func (db *Database) Scan(dest ...interface{}) error {
 		}
 	} else {
 		// Scan(field1, field2, ...)
-		if err = rows.Scan(dest); err != nil {
-			return err
+		for rows.Next() {
+			if err = rows.Scan(dest...); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
