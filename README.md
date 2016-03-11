@@ -322,9 +322,39 @@ See [Scan and Find methods](#scan-and-find-methods)
 
 ### Raw
 
-Executes a raw query, the results is avaiable for the Scan method.
+Prepares and executes a raw query, the results is avaiable for the Scan method.
 
 See [Scan and Find methods](#scan-and-find-methods)
+
+### Exec
+
+Prepares and executes a raw query, the results is discarded. Useful when you don't need the query result or the operation have no result.
+
+```go
+tx := db.Begin()
+tx.Exec("DROP TABLE IF EXISTS users")
+tx.Exec(`CREATE TABLE users (
+	counter bigint NOT NULL,
+	last timestamp without time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+	notify_story jsonb,
+	private boolean DEFAULT false NOT NULL,
+	lang character varying(2) DEFAULT 'en'::character varying NOT NULL,
+	username character varying(90) NOT NULL,
+	password character varying(60) NOT NULL,
+	name character varying(60) NOT NULL,
+	surname character varying(60) NOT NULL,
+	email character varying(350) NOT NULL,
+	gender boolean NOT NULL,
+	birth_date date NOT NULL,
+	board_lang character varying(2) DEFAULT 'en'::character varying NOT NULL,
+	timezone character varying(35) DEFAULT 'UTC'::character varying NOT NULL,
+	viewonline boolean DEFAULT true NOT NULL,
+	remote_addr inet DEFAULT '127.0.0.1'::inet NOT NULL,
+	http_user_agent text DEFAULT ''::text NOT NULL,
+	registration_time timestamp(0) with time zone DEFAULT now() NOT NULL
+	)`)
+tx.Commit()
+```
 
 ### Where
 

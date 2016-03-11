@@ -181,7 +181,9 @@ func (db *Database) Scan(dest ...interface{}) error {
 		if rows, err = stmt.Query(append(db.selectValues, db.whereValues...)...); err != nil {
 			return err
 		}
+
 	} else {
+		// Raw has already executed the Query
 		rows = db.rawRows
 	}
 
@@ -243,21 +245,22 @@ func (db *Database) Scan(dest ...interface{}) error {
 	return nil
 }
 
-// Raw executes a raw query, replacing placeholders (?) with the one supported by PostgreSQL
-// Prepare the statement only. Call Scan to execute itOA
+// Exec prepares and execute a raw query and replace placeholders (?) with the one supported by PostgreSQL
+// Exec panics if can't build the query
+// Use Exec instead of Raw when you don't need the results (or there's no result)
+func (db *Database) Exec(query string, args ...interface{}) error {
+	defer db.clear()
+	stmt := db.commonRawQuery(query, args...)
+	_, e := stmt.Exec(db.whereValues...)
+	return e
+}
+
+// Raw prepares and executes a raw query and replace placeholders (?) with the one supported by PostgreSQL
+// Raw panics if can't build the query
+// To fetch results call Scan
 func (db *Database) Raw(query string, args ...interface{}) *Database {
-	// Replace ? with $n
-	query = db.replaceMarks(query)
-	// Append args content to current values
-	db.whereValues = append(db.whereValues, args...)
-
-	// Compile query
-	var stmt *sql.Stmt
 	var err error
-	if stmt, err = db.db.Prepare(query); err != nil {
-		db.panicLog(err.Error())
-	}
-
+	stmt := db.commonRawQuery(query, args...)
 	// Pass query parameters and executes the query
 	if db.rawRows, err = stmt.Query(db.whereValues...); err != nil {
 		db.panicLog(err.Error())
@@ -384,6 +387,7 @@ func (db *Database) DB() *sql.DB {
 
 // Begin initialize a transaction
 // panics if begin has been already called
+// Returns nil on error (if logger is enabled write error on log)
 func (db *Database) Begin() *Database {
 	// Initialize transaction
 	var tx *sql.Tx

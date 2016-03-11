@@ -153,18 +153,14 @@ func (db *Database) clear() {
 	db.models = nil
 	db.selectValues = nil
 	db.selectFields = ""
-	db.updateCreateFields = nil
 	db.updateCreateValues = nil
+	db.updateCreateFields = nil
 	db.whereValues = nil
 	db.whereFields = nil
 	db.order = ""
 	db.limit = 0
 	db.offset = 0
 	db.varCount = 1
-	// connections contains a backup connection
-	// used in trasaction.
-	// can be cleaned up
-	//db.connection = nil
 }
 
 // printLog uses db.log to update log
@@ -194,6 +190,24 @@ func handleIdentifier(clause string) string {
 		return "\"" + lowerClause + "\""
 	}
 	return namingConvention(clause)
+}
+
+// commonRawQuery executes common operations when using raw queries
+// returns the prepared statement
+func (db *Database) commonRawQuery(query string, args ...interface{}) *sql.Stmt {
+	// Replace ? with $n
+	query = db.replaceMarks(query)
+	// Append args content to current values
+	db.whereValues = append(db.whereValues, args...)
+
+	db.printLog(query)
+	// Compile query
+	var stmt *sql.Stmt
+	var err error
+	if stmt, err = db.db.Prepare(query + ";"); err != nil {
+		db.panicLog(err.Error())
+	}
+	return stmt
 }
 
 // commonCreateUpdate executs common operation in preparation of create / update statements
@@ -291,7 +305,7 @@ func namingConvention(name string) string {
 	// first char is always upper case
 	var ucActual = true
 	var buffer bytes.Buffer
-	buffer.WriteByte(name[0])
+	buffer.WriteRune(rune(name[0]))
 	for i := 1; i < len(name); i++ {
 		prevChar := rune(name[i-1])
 		actualChar := rune(name[i])
