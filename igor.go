@@ -1,3 +1,39 @@
+/*
+Copyright 2016 Paolo Galeone. All right reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+// Package igor is an abstraction layer for PostgreSQL. Igor syntax is (almost) compatible with GORM.
+//
+//You should use igor when your DBMS is PostgreSQL and you want to place an abstraction layer on top of it and do CRUD operations in a smart, easy, secure and fast way.
+//
+// What igor does:
+//- Always uses prepared statements: no sql injection and good performance.
+//- Supports transactions
+//- Uses a GORM like syntax
+//- Uses the same logic in insertion and update: handle default values in a coherent manner
+//- Uses GORM models and conventions (partially, see [Differences](#differences))
+//- Exploits PostgreSQL `RETURNING` statement to update models fiels with the updated values (even when changed on db side; e.g. when having a default value)
+//- Automatically handle reserved keywords when used as a table name or fields. Do not quote every field (that's not recommended) but only the ones conflicting with a reserved keyword.
+//
+//What igor is not:
+//
+//- An ORM (and thus a complete GORM replacement):
+//  - Do not support associations
+//  - Do not support callbacks
+//  - Do not have any specific method for data migration and DDL operations
+//  - Do not support soft delete
 package igor
 
 import (

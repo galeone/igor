@@ -2,6 +2,8 @@
 
 igor is an abstraction layer for PostgreSQL, written in Go. Igor syntax is (almost) compatible with [GORM](https://github.com/jinzhu/gorm "The fantastic ORM library for Golang, aims to be developer friendly").
 
+[![GoDoc](https://godoc.org/github.com/galeone/igor?status.svg)](https://godoc.org/github.com/galeone/igor)
+
 ## When to use igor
 
 You should use igor when your DBMS is PostgreSQL and you want to place an abstraction layer on top of it and do CRUD operations in a smart, easy, secure and fast way.
@@ -19,7 +21,7 @@ Thus with igor you __do not__ create a new schema. In general igor do not suppor
 - Automatically handle reserved keywords when used as a table name or fields. Do not quote every field (that's not recommended) but only the ones conflicting with a reserved keyword.
  
 
-## What is not igor
+## What igor is not
 
 - An ORM (and thus a complete GORM replacement):
   - Do not support associations
@@ -580,9 +582,37 @@ Do you want to add some new method to improve GORM compatibility or add some new
 
 Feel free to contribuite via Pull Request.
 
+### Testing
+
+To test igor, you must create a igor user on PostgreSQL and make it own the igor database.
+On Archlinux, with `postgres` as the PostgreSQL superuser this can be achieved by:
+
+```sh
+createuser -U postgres igor
+createdb -U postgres igor igor
+```
+
+Now you can test igor with:
+
+```sh
+go test
+```
+
 ### License
 
-Igor is relaeased under GNU Affero General Public License v3 (AGPL-3.0).
+Copyright 2016 Paolo Galeone. All right reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 ### About the author
 
