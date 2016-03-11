@@ -35,7 +35,7 @@ go get -u github.com/galeone/igor
 
 ## GORM compatible
 
-igor uses the same syntax of GORM. Thus in a great number of cases you can replace gorm with igor by only changing the import path.
+igor uses the same syntax of GORM. Thus in a great number of cases you can replace GORM with igor by only changing the import path.
 
 __Warning__: igor is not a complete GORM replacement. See the [Differences](#differences).
 
@@ -89,9 +89,9 @@ var counter uint64
 db.Model(User{}).Select("login(?, ?) AS logged, counter", username, password).Where("LOWER(username) = ?", username).Scan(&logged, &counter);
 ```
 
-Generates:
+generates:
 ```sql
-SELECT login($1, $2) AS logged, counter FROM users WHERE "LOWER(username) = $3 ;
+SELECT login($1, $2) AS logged, counter FROM users WHERE LOWER(username) = $3 ;
 ```
 
 ### Joins
@@ -127,7 +127,7 @@ db.Model(UserPost{}).Order("hpid DESC").
     Where("\"to\" = ?", user.Counter).Scan(&userPost)
 ```
 
-Generates:
+generates:
 ```go
 SELECT posts.hpid,posts."from",posts."to",posts.pid,posts.message,posts."time",posts.lang,posts.news,posts.closed
 FROM posts
@@ -156,7 +156,7 @@ Thus:
 db.Model(UserPost{}).Where(&UserPost{Hpid: 1, From:1, To:1})
 ```
 
-Generates:
+generates:
 
 ```sql
 SELECT posts.hpid,posts."from",posts."to",posts.pid,posts.message,posts."time",posts.lang,posts.news,posts.closed
@@ -221,12 +221,12 @@ In that way igor always have the up-to-date fields of DBModel.
 
 ```go
 post := &UserPost{
-  From: 1,
-  To: 1,
-  Pid: 10,
-  Message: "hi",
-  Lang: "en",
-  }
+    From: 1,
+    To: 1,
+    Pid: 10,
+    Message: "hi",
+    Lang: "en",
+}
 db.Create(post)
 ```
 
@@ -260,7 +260,7 @@ user.Username = "username changed"
 db.Updates(&user)
 ```
 
-Generates:
+generates:
 
 ```sql
 UPDATE users SET users.username = "username changed" WHERE users.counter = 1 RETURNING users.counter,users.last,users.notify_story,users.private,users.lang,users.username,users.email,users.name,users.surname,users.gender,users.birth_date,users.board_lang,users.timezone,users.viewonline,users.registration_time
@@ -291,7 +291,7 @@ var blacklist []uint64
 db.Model(Blacklist{}).Where(&Blacklist{From: user.Counter}).Pluck("\"to\"", &blacklist)
 ```
 
-Generates
+generates
 
 ```sql
 SELECT "to" FROM blacklist WHERE blacklist."from" = $1
@@ -374,7 +374,7 @@ if e := tx.Create(&user); e != nil {
 ## Differences
 
 ### Select and Where call order
-In gorm, you can execute
+In GORM, you can execute
 ```go
 db.Model(User{}).Select("username")
 ```
@@ -398,7 +398,7 @@ The reason is that igor generates queries in the form `SELECT table.field1, tabl
 In order to avoid ambiguities when using `Joins`, the `RETURNING` part of the query must be in the form `table.field1, table.filed2, ...`, and table is the `TableName()` result of the `DBModel` passed as `Model` argument.
 
 ### Models
-Igor models are __the same__ as gorm models (you must use the `gorm` tag field and `sql` tag fields as used in gorm).
+Igor models are __the same__ as GORM models (you must use the `gorm` tag field and `sql` tag fields as used in GORM).
 
 The only difference is that igor models require the implementation of the `DBModel` interface.
 
@@ -432,14 +432,14 @@ db.Log(nil)
 Privacy: you'll __never__ see the values of the variables, but only the prepared statement and the PostgreSQL placeholders. Respect your user privacy, do not log user input (like credentials).
 
 ### Methods return value
-In gorm, every method (even the ones that execute queries) returns a `*DB`.
+In GORM, every method (even the ones that execute queries) returns a `*DB`.
 
 In igor:
 - methods that execute queries returns `error`
-- methods that build the query returns `*Database`, thus you can chain the methods (a là gorm) and build the query.
+- methods that build the query returns `*Database`, thus you can chain the methods (a là GORM) and build the query.
 
 ### Scan and Find methods
-In gorm, `Scan` method is used to scan query results into a struct. The `Find` method is almost the same.
+In GORM, `Scan` method is used to scan query results into a struct. The `Find` method is almost the same.
 
 In igor:
 - `Scan` method executes the `SELECT` query. Thus return an error if `Scan` fails (see the previous section).
@@ -453,7 +453,7 @@ In igor:
 - `Find` method does not exists, is completely replaced by `Scan`.
 
 ### Scan
-In addiction to the previous section, there's another difference between gorm ad igor.
+In addiction to the previous section, there's another difference between GORM ad igor.
 
 `Scan` method __do not__ scan selected fields into results using the selected fields name, but using the order (to increse the performance).
 
@@ -518,7 +518,7 @@ db.Delete(&UserPost{From:1,To:1})
 
 ### First
 
-In gorm `First` is used to get the first record, with or without a second parameter that is the primary key value.
+In GORM `First` is used to get the first record, with or without a second parameter that is the primary key value.
 
 In igor this is not possible. `First` works only with 2 parameter.
 
@@ -532,10 +532,28 @@ db.First(&user, uint64(1))
 db.First(&user, "1") // panics, because "1" is not of the same type of user.Counter (uint64)
 ```
 
-Generates:
+generates:
 
 ```sql
 SELECT users.counter,users.last,users.notify_story,users.private,users.lang,users.username,users.email,users.name,users.surname,users.gender,users.birth_date,users.board_lang,users.timezone,users.viewonline,users.registration_time
 FROM users
 WHERE users.counter = $1
 ```
+
+## Other
+
+Every other GORM method is not implemented.
+
+### Contributing
+
+Do you want to add some new method to improve GORM compatibility or add some new method to improve igor?
+
+Feel free to contribuite via Pull Request.
+
+### License
+
+Igor is relaeased under GNU Affero General Public License v3 (AGPL-3.0).
+
+### About the author
+
+Feel free to contact me (you can find my email address and other ways to contact me in my GitHub profile page).
