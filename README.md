@@ -1,12 +1,12 @@
 # igor
 
-igor is a query builder for PostgreSQL, compatible with [GORM](https://github.com/jinzhu/gorm "The fantastic ORM library for Golang, aims to be developer friendly").
+igor is an abstraction layer for PostgreSQL, written in Go. Igor syntax is (almost) compatible with [GORM](https://github.com/jinzhu/gorm "The fantastic ORM library for Golang, aims to be developer friendly").
 
 ## When to use igor
 
 You should use igor when your DBMS is PostgreSQL and you want to place an abstraction layer on top of it and do CRUD operations in a smart, easy, secure and fast way.
 
-Thus with igor you __do not__ create a new schema. In general igor do not support DDL (you can do it with the `Raw` method, but is not officially supported).
+Thus with igor you __do not__ create a new schema. In general igor do not support DDL (you can do it with the `Raw` and `Exec`, but there are not method created ad-hoc for thir purpose).
 
 ## What igor does
 
