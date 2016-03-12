@@ -68,6 +68,31 @@ type (User) TableName() string {
 ```
 
 ## Methods
+- [Connect](#connect)
+- [Log](#log)
+- [Model](#model)
+- [Joins](#joins)
+- [Table](#table)
+- [Select](#select)
+- [Where](#where)
+- [Create](#create)
+- [Delete](#delete)
+- [Updates](#updates)
+- [Pluck](#pluck)
+- [Count](#count)
+- [First](#first)
+- [Scan](#scan)
+- [Raw](#raw)
+- [Exec](#exec)
+- [Where](#where)
+- [Limit](#limit)
+- [Offset](#offset)
+- [Order](#order)
+- [DB](#db)
+- [Begin](#begin)
+- [Commit](#commit)
+- [Rollback](#rollback)
+
 
 ### Connect
 ```go
@@ -379,6 +404,50 @@ tx.Commit()
 ```
 
 ### Where
+Where builds the WHERE clause.
+
+If a primary key is present in the struct passed as argument only that field is used.
+
+```go
+user.Counter = 2
+user.Name = "paolo"
+db.Select("username").Where(&user)
+```
+
+generates:
+
+```sql
+SELECT username FROM users WHERE users.counter = $1
+```
+
+because `Counter` is the primary key.
+
+If the primary key is blank every non empty field is and-end.
+
+```go
+user.Counter = 0 // 0 is a blank primary key
+```
+
+generates
+
+```sql
+SELECT username FROM users WHERE users.name = $1
+```
+
+You can use a string to build the where clause and pass parameters if needed.
+
+```go
+db.Model(User{}).Select("username").Where("counter IN (?) AND name ILIKE ?",[]uint64{1,2,4,5}, "nino")
+
+```
+
+generates:
+
+```sql
+SELECT username FROM users WHERE counter in ($1,$2,$3,$4) AND name ILIKE $5
+```
+
+If a where condition can't be generated, Where panics
 
 ### Limit
 Limit sets the LIMIT value to the query
