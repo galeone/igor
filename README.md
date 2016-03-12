@@ -147,6 +147,26 @@ Select sets the fields to retrieve. Appends fields to SELECT (See example in [Mo
 
 When select is not specified, every field is selected in the Model order (See example in [Joins](#joins)).
 
+__Warning__: calling `Select` using parameters without type is allowed only if the stored procedure on the DBMS define the type.
+
+Eg: if we have a function on postresql that accepts two parameters like
+```pgsql
+login(_username text, _pass text, OUT ret boolean) RETURNS boolean
+```
+we can call this function in that way
+
+```go
+db.Select('login(?,?)', username, password)
+```
+
+But, if the DBMS can't infer the paramters (in every other case except the one previous mentioned), we __must__ make parameters type explicit.
+
+This is due to the use of prepared statements.
+
+```go
+db.Select("?::int, ?::int, ?::int", 1, 2, 3)
+```
+
 ### Where
 Where works with `DBModel`s or strings.
 
