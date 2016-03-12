@@ -16,6 +16,10 @@ limitations under the License.
 package igor_test
 
 import (
+	"fmt"
+	"log"
+	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -134,11 +138,38 @@ func init() {
     template_variables jsonb DEFAULT '{}'::jsonb NOT NULL
 	)`)
 
-	tx.Exec("ALTER TABLE profiles ADD CONSTRAINT profiles_users_fk FOREIGN KEY(counter) references users(counter)")
+	tx.Exec("ALTER TABLE profiles ADD CONSTRAINT profiles_users_fk FOREIGN KEY(counter) references users(counter) ON DELETE CASCADE")
 
 	if e = tx.Commit(); e != nil {
 		panic(e.Error())
 	}
+}
+
+// createUser creates a test user (since the primary key is a bigserial, each call creates a new user)
+func createUser() User {
+	user := User{
+		Username:  "igor",
+		Password:  "please store hashed password",
+		Name:      "Paolo",
+		Surname:   "Galeone",
+		Email:     "please validate the @email . com",
+		Gender:    true,
+		BirthDate: time.Now(),
+	}
+
+	if e = db.Create(&user); e != nil {
+		panic(fmt.Sprintf("Create(&user) filling fields having no default shoud work, but got: %s\n", e.Error()))
+	}
+	return user
+}
+
+// createProfile creates the profile for a test user (since the primary key is a bigserial, each call creates a new user)
+func createProfile(id uint64) Profile {
+	profile := Profile{Counter: id}
+	if e = db.Create(&profile); e != nil {
+		panic(fmt.Sprintf("Create(&profile) failed: %s\n", e.Error()))
+	}
+	return profile
 }
 
 func TestModelCreateUpdatesSelectDelete(t *testing.T) {
@@ -162,18 +193,17 @@ func TestModelCreateUpdatesSelectDelete(t *testing.T) {
 		t.Error("Create an user without assign a value to fileds that have no default should fail")
 	}
 
-	user := User{
-		Username:  "igor",
-		Password:  "please store hashed password",
-		Name:      "Paolo",
-		Surname:   "Galeone",
-		Email:     "please validate the @email . com",
-		Gender:    true,
-		BirthDate: time.Now(),
+	user := createUser()
+	user.Profile = createProfile(user.Counter)
+
+	// Testing first
+	var p Profile
+	if e = db.First(&p, user.Counter); e != nil {
+		t.Error("First failed: %s\n", e.Error())
 	}
 
-	if e = db.Create(&user); e != nil {
-		t.Fatalf("Create(&user) filling fields having no default shoud work, but got: %s\n", e.Error())
+	if !reflect.DeepEqual(p, user.Profile) {
+		t.Error("Fetched profile should be deep equals to the created profile")
 	}
 
 	if user.Lang != "en" {
@@ -198,5 +228,65 @@ func TestModelCreateUpdatesSelectDelete(t *testing.T) {
 
 	if e = db.Delete(&user); e != nil {
 		t.Errorf("Delete of a user (using the primary key) shoudl work, but got: %s\n", e.Error())
+	}
+}
+
+func TestJoinsTableSelectDeleteWhere(t *testing.T) {
+	// create 6 user and profiles
+	var ids []uint64
+	for i := 0; i < 6; i++ {
+		ids = append(ids, createUser().Counter)
+		createProfile(uint64(i + 1))
+	}
+
+	var fetchedIds []uint64
+	if e = db.Model(User{}).Order("counter asc").Pluck("counter", &fetchedIds); e != nil {
+		t.Errorf("Pluck should work but got: %s\n", e.Error())
+	}
+
+	for i := 0; i < 6; i++ {
+		if ids[i] != fetchedIds[i] {
+			t.Errorf("Expected %d in position %d but got: %d\n", ids[i], i, fetchedIds[i])
+		}
+	}
+
+	// select $1::int, $2::int, $3::it, counter from users join profiles on user.counter = profiles.counter
+	// where user.counter = $4
+	var one, two, three, four int
+	logger := log.New(os.Stdout, "query-logger", log.LUTC)
+	db.Log(logger)
+	u := (User{}).TableName()
+	p := (Profile{}).TableName()
+	if e = db.Select("?::int, ?::int, ?::int, "+u+".counter", 1, 2, 3).
+		Table(u).
+		Joins("JOIN "+p+" ON "+u+".counter = "+p+".counter").
+		Where(&User{Counter: 4}).Scan(&one, &two, &three, &four); e != nil {
+		t.Error(e.Error())
+	}
+	db.Log(nil)
+
+	if one != 1 || two != 2 || three != 3 || four != 4 {
+		t.Errorf("problem in scanning results, expected 1,2,3,4 got: %d,%d,%d,%d", one, two, three, four)
+	}
+
+	// Count
+	var count uint8
+	if e = db.Model(User{}).Count(&count); e != nil {
+		t.Error("problem counting users: %s\n", e.Error())
+	}
+
+	if count != 6 {
+		t.Errorf("Problem wiht count. Expeted 6 users but counted %d", count)
+	}
+
+	if e = db.Where("counter IN (?)", ids).Delete(User{}); e != nil {
+		t.Errorf("delete in range should work but got: %s\n", e.Error())
+	}
+
+	// clear slice and pluck again
+	fetchedIds = nil
+	db.Model(User{}).Order("counter asc").Pluck("counter", &fetchedIds)
+	if len(fetchedIds) != 0 {
+		t.Errorf("delete in range failed, pluck returned ids that must have been deleted")
 	}
 }
