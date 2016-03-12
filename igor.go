@@ -83,7 +83,8 @@ func (db *Database) Joins(joins string) *Database {
 // Table appends the table string to FROM. It has the same behavior of Model, but
 // passing the tablename directly as a string
 func (db *Database) Table(table string) *Database {
-	return db.Joins(table)
+	db.tables = append(db.tables, handleIdentifier(table))
+	return db
 }
 
 // Select sets the fields to retrieve. Appends fields to SELECT
@@ -359,7 +360,6 @@ func (db *Database) Where(s interface{}, args ...interface{}) *Database {
 				}
 			}
 			// build the new where clause and pass it to replaceMarks
-			fmt.Println(buffer.String())
 			db.whereFields = append(db.whereFields, db.replaceMarks(buffer.String()))
 			db.whereValues = append(db.whereValues, whereArgsExtended...)
 		} else {
