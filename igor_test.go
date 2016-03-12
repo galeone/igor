@@ -63,7 +63,7 @@ func (Profile) TableName() string {
 type User struct {
 	Counter          uint64    `gorm:"primary_key"`
 	Last             time.Time `sql:"default:(now() at time zone 'utc')"`
-	NotifyStory      []byte
+	NotifyStory      igor.JSON `sql:"default:'{}'::jsonb"`
 	Private          bool
 	Lang             string `sql:"default:en"`
 	Username         string
@@ -253,7 +253,7 @@ func TestJoinsTableSelectDeleteWhere(t *testing.T) {
 	// select $1::int, $2::int, $3::it, counter from users join profiles on user.counter = profiles.counter
 	// where user.counter = $4
 	var one, two, three, four int
-	logger := log.New(os.Stdout, "query-logger", log.LUTC)
+	logger := log.New(os.Stdout, "igor-log: ", log.LUTC)
 	db.Log(logger)
 	u := (User{}).TableName()
 	p := (Profile{}).TableName()
@@ -289,4 +289,48 @@ func TestJoinsTableSelectDeleteWhere(t *testing.T) {
 	if len(fetchedIds) != 0 {
 		t.Errorf("delete in range failed, pluck returned ids that must have been deleted")
 	}
+}
+
+func TestJSON(t *testing.T) {
+	user := createUser()
+	var emptyJson igor.JSON = make(igor.JSON)
+
+	if !reflect.DeepEqual(user.NotifyStory, emptyJson) {
+		t.Errorf("JSON notifyStory should be empty but got: %s instead of %s\n", user.NotifyStory, emptyJson)
+	}
+
+	var ns igor.JSON = make(igor.JSON)
+
+	ns["0"] = struct {
+		From    uint64 `json:from`
+		To      uint64 `json:to`
+		Message string `json:message`
+	}{
+		From:    1,
+		To:      1,
+		Message: "hi bob",
+	}
+	ns["numbers"] = 1
+	ns["test"] = 2
+
+	user.NotifyStory = ns
+
+	if e = db.Updates(&user); e != nil {
+		t.Errorf("updates should work but got: %s\n", e.Error())
+	}
+
+	// To use JSON with json, use:
+	// printableJSON, _ := json.Marshal(user.NotifyStory)
+	// fmt.Printf("%s\n", printableJSON)
+
+	var nsNew igor.JSON
+	if e = db.Model(User{}).Select("notify_story").Where(&user).Scan(&nsNew); e != nil {
+		t.Errorf("Problem scanning into igor.JSON: %s\n", e.Error())
+	}
+
+	if !reflect.DeepEqual(ns, nsNew) {
+		t.Errorf("fetched notify story is different from the saved one\n%s vs %s", ns, nsNew)
+	}
+
+	db.Delete(&user)
 }

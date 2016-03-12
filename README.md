@@ -1,19 +1,17 @@
 # igor
-
 igor is an abstraction layer for PostgreSQL, written in Go. Igor syntax is (almost) compatible with [GORM](https://github.com/jinzhu/gorm "The fantastic ORM library for Golang, aims to be developer friendly").
 
 [![GoDoc](https://godoc.org/github.com/galeone/igor?status.svg)](https://godoc.org/github.com/galeone/igor)
 
 ## When to use igor
-
 You should use igor when your DBMS is PostgreSQL and you want to place an abstraction layer on top of it and do CRUD operations in a smart, easy, secure and fast way.
 
 Thus with igor you __do not__ create a new schema. In general igor does not support DDL (you can do it with the `Raw` and `Exec`, but there are not method created ad-hoc for this purpose).
 
 ## What igor does
-
 - Always uses prepared statements: no sql injection and good performance.
 - Supports transactions
+- Supports PostgreSQL JSON and JSONB types with `igor.JSON`
 - Uses a GORM like syntax
 - Uses the same logic in insertion and update: handle default values in a coherent manner
 - Uses GORM models and conventions (partially, see [Differences](#differences))
@@ -22,7 +20,6 @@ Thus with igor you __do not__ create a new schema. In general igor does not supp
  
 
 ## What igor is not
-
 - An ORM (and thus a complete GORM replacement):
   - Does not support associations
   - Does not support callbacks
@@ -30,13 +27,11 @@ Thus with igor you __do not__ create a new schema. In general igor does not supp
   - Does not support soft delete
 
 ## Install
-
 ```go
 go get -u github.com/galeone/igor
 ```
 
 ## GORM compatible
-
 igor uses the same syntax of GORM. Thus in a great number of cases you can replace GORM with igor by only changing the import path.
 
 __Warning__: igor is not a complete GORM replacement. See the [Differences](#differences).
@@ -345,7 +340,6 @@ SELECT "to" FROM blacklist WHERE blacklist."from" = $1
 ```
 
 ### Count
-
 Count sets the query result to be count(*) and scan the result into value.
 
 ```go
@@ -635,7 +629,6 @@ db.Delete(&UserPost{From:1,To:1})
 ```
 
 ### First
-
 In GORM `First` is used to get the first record, with or without a second parameter that is the primary key value.
 
 In igor this is not possible. `First` works only with 2 parameter.
@@ -659,17 +652,53 @@ WHERE users.counter = $1
 ```
 
 ## Other
-
 Every other GORM method is not implemented.
 
-### Contributing
+### JSON and JSONB support
+Igor supports PostgreSQL JSON and JSONB types natively.
 
+Just define the field in the DBModel with the type `igor.JSON`.
+After that, you can work with JSON in the following way:
+
+```go
+user := createUser()
+
+var ns igor.JSON = make(igor.JSON) // use it like a map[string]interface{}
+
+ns["0"] = struct {
+    From    uint64 `json:from`
+    To      uint64 `json:to`
+    Message string `json:message`
+}{
+    From:    1,
+    To:      1,
+    Message: "hi bob",
+}
+ns["numbers"] = 1
+ns["test"] = 2
+
+user.NotifyStory = ns
+
+if e = db.Updates(&user); e != nil {
+    t.Errorf("updates should work but got: %s\n", e.Error())
+}
+
+// To use JSON with json, use:
+// printableJSON, _ := json.Marshal(user.NotifyStory)
+// fmt.Printf("%s\n", printableJSON)
+
+var nsNew igor.JSON
+if e = db.Model(User{}).Select("notify_story").Where(&user).Scan(&nsNew); e != nil {
+    t.Errorf("Problem scanning into igor.JSON: %s\n", e.Error())
+}
+```
+
+### Contributing
 Do you want to add some new method to improve GORM compatibility or add some new method to improve igor?
 
 Feel free to contribuite via Pull Request.
 
 ### Testing
-
 To test igor, you must create a igor user on PostgreSQL and make it own the igor database.
 On Archlinux, with `postgres` as the PostgreSQL superuser this can be achieved by:
 
@@ -685,7 +714,6 @@ go test
 ```
 
 ### License
-
 Copyright 2016 Paolo Galeone. All right reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
