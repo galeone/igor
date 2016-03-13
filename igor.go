@@ -56,6 +56,7 @@ func Connect(connectionString string) (*Database, error) {
 	if db.db, e = sql.Open("postgres", connectionString); e != nil {
 		return nil, e
 	}
+	db.connectionString = connectionString
 	db.clear()
 	return db, nil
 }

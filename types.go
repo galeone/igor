@@ -54,4 +54,5 @@ type Database struct {
 	limit              int
 	offset             int
 	varCount           int
+	connectionString   string
 }
