@@ -18,6 +18,7 @@ package igor
 
 import (
 	"database/sql"
+	"github.com/lib/pq"
 	"log"
 )
 
@@ -55,4 +56,5 @@ type Database struct {
 	offset             int
 	varCount           int
 	connectionString   string
+	listener           *pq.Listener
 }

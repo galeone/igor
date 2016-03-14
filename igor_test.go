@@ -20,6 +20,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 
@@ -333,4 +334,67 @@ func TestJSON(t *testing.T) {
 	}
 
 	db.Delete(&user)
+}
+
+func TestNotifications(t *testing.T) {
+	logger := log.New(os.Stdout, "igor-log: ", log.LUTC)
+	db.Log(logger)
+	count := 0
+	if e = db.Listen("notification_without_payload", func(payload ...string) {
+		count++
+		t.Log("Received notification on channel: notification_without_payload\n")
+	}); e != nil {
+		t.Fatalf("Unalbe to listen on channel: %s\n", e.Error())
+	}
+
+	for i := 0; i < 4; i++ {
+		if e = db.Notify("notification_without_payload"); e != nil {
+			t.Fatalf("Unable to send notification: %s\n", e.Error())
+		}
+	}
+
+	// wait some time to handle all notifications
+	time.Sleep(100 * time.Millisecond)
+	if count != 4 {
+		t.Errorf("Expected to receive 4 notifications, but counted only: %d\n", count)
+	}
+
+	// listen on an opened channel should fail
+	if e = db.Listen("notification_without_payload", func(payload ...string) {}); e == nil {
+		t.Errorf("Listen on an opened channel should fail, but succeeded\n")
+	}
+
+	// Handle payload
+
+	// listen on more channels, with payload
+	count = 0
+	if e = db.Listen("np", func(payload ...string) {
+		count++
+		t.Logf("channel np: received payload: %s\n", payload)
+	}); e != nil {
+		t.Fatalf("Unalbe to listen on channel: %s\n", e.Error())
+	}
+
+	// test sending payload with notify
+	for i := 0; i < 4; i++ {
+		if e = db.Notify("np", strconv.Itoa(i)+" payload"); e != nil {
+			t.Fatalf("Unable to send notification with payload: %s\n", e.Error())
+		}
+	}
+
+	// wait some time to handle all notifications
+	time.Sleep(100 * time.Millisecond)
+	if count != 4 {
+		t.Errorf("Expected to receive 4 notifications, but counted only: %d\n", count)
+	}
+
+	// test unlisten
+	if e = db.Unlisten("notification_without_payload"); e != nil {
+		t.Errorf("Unable to unlisten from notification_without_payload, got: %s\n", e.Error())
+	}
+
+	// test UnlistenAll
+	if e = db.UnlistenAll(); e != nil {
+		t.Errorf("Unable to unlistenAll, got: %s\n", e.Error())
+	}
 }

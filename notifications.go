@@ -18,6 +18,7 @@ package igor
 
 import (
 	"errors"
+	"fmt"
 	"github.com/lib/pq"
 	"strings"
 	"time"
@@ -25,31 +26,67 @@ import (
 
 // Listen executes `LISTEN channel`. Uses f to handle received notifications on chanel.
 // On error logs error messages (if a logs exists)
-func (db *Database) Listen(channel string, f func(interface{})) error {
-	reportProblem := func(ev pq.ListenerEventType, err error) {
-		if err != nil && db.logger != nil {
-			db.printLog(err.Error())
+func (db *Database) Listen(channel string, f func(payload ...string)) error {
+	// Create a new listener only if Listen is called for the first time
+	if db.listener == nil {
+		reportProblem := func(ev pq.ListenerEventType, err error) {
+			if err != nil && db.logger != nil {
+				db.printLog(err.Error())
+			}
+		}
+		db.listener = pq.NewListener(db.connectionString, 10*time.Second, time.Minute, reportProblem)
+
+		if db.listener == nil {
+			return errors.New("Unable to create a new listener")
 		}
 	}
 
-	listener := pq.NewListener(db.connectionString, 10*time.Second, time.Minute, reportProblem)
-	if listener == nil {
-		return errors.New("Unable to create a new listener")
+	if err := db.listener.Listen(channel); err != nil {
+		return err
 	}
 
-	return db.Exec("LISTEN ?", handleIdentifier(channel))
+	// detach event handler
+	go func() {
+		for {
+			select {
+			case notification := <-db.listener.Notify:
+				go f(notification.Extra)
+			case <-time.After(90 * time.Second):
+				go func() {
+					if db.listener.Ping() != nil {
+						db.printLog(fmt.Sprintf("Error checking server connection for channel %s\n", channel))
+						return
+					}
+				}()
+			}
+		}
+	}()
+
+	return nil
 }
 
-// Unlisten executes `UNLISTEN channel`. Unregister function f, that was registred with Listen(chanenel ,f).
+// Unlisten executes `UNLISTEN channel`. Unregister function f, that was registered with Listen(channel ,f).
 func (db *Database) Unlisten(channel string) error {
-	return db.Exec("UNLISTEN ?", handleIdentifier(channel))
+	if db.listener == nil {
+		return errors.New("You must create a new listener first, calling Listen(channel)")
+	}
+
+	if channel == "*" {
+		return db.listener.UnlistenAll()
+	}
+	return db.listener.Unlisten(channel)
+}
+
+// UnlistenAll executes `UNLISTEN *`. Thus do not receive any notification from any channel
+func (db *Database) UnlistenAll() error {
+	return db.Unlisten("*")
 }
 
 // Notify sends a notification on channel, optional payloads are joined together and comma separated
 func (db *Database) Notify(channel string, payload ...string) error {
 	pl := strings.Join(payload, ",")
 	if len(pl) > 0 {
-		return db.Exec("SELECT pg_notify(?::text, ?::text)", handleIdentifier(channel), pl)
+		return db.Exec("SELECT pg_notify(?, ?)", channel, pl)
 	}
-	return db.Exec("NOTIFY ?::text", handleIdentifier(channel))
+	return db.Exec("NOTIFY " + handleIdentifier(channel))
 }

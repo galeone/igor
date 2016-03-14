@@ -12,6 +12,7 @@ Thus with igor you __do not__ create a new schema. In general igor does not supp
 - Always uses prepared statements: no sql injection and good performance.
 - Supports transactions
 - Supports PostgreSQL JSON and JSONB types with `igor.JSON`
+- Supports PostgreSQL [LISTEN/NOTIFY](http://www.postgresql.org/docs/current/static/sql-notify.html)
 - Uses a GORM like syntax
 - Uses the same logic in insertion and update: handle default values in a coherent manner
 - Uses GORM models and conventions (partially, see [Differences](#differences))
@@ -87,7 +88,10 @@ type (User) TableName() string {
 - [Begin](#begin)
 - [Commit](#commit)
 - [Rollback](#rollback)
-
+- [Listen](#listen)
+- [Unlisten](#unlisten)
+- [UnlistenAll](#unlistenall)
+- [Notify](#notify)
 
 ### Connect
 ```go
@@ -486,6 +490,45 @@ if e := tx.Create(&user); e != nil {
 
 ```
 
+### Listen
+Listen executes `LISTEN channel`. Uses f to handle received notifications on chanel.
+
+```go
+if e := db.Listen("notification_channel", func(payload ...string) {
+    if len(payload) > 0 {
+        pl := strings.Join(payload, ",")
+        fmt.Println("Received notification on channel notification_channel, having payload: " + pl)
+    } else {
+        fmt.Println("Received notification on channel notification_channel without payload")
+    }
+}); e != nil {
+    // handle error
+}
+```
+
+### Unlisten
+Unlisten executes`UNLISTEN channel`. Unregister function f, that was registered with Listen(chanenel ,f).
+
+```go
+e := db.Unlisten("notification_channel")
+// handle error
+```
+
+You can unlisten from every channel calling `db.Unlisten("*")` or using the method `UnlistenAll`
+
+### UnlistenAll
+UnlistenAll executes `UNLISTEN *`. Thus do not receive any notification from any channel.
+
+### Notify
+With Notify you can send a notification with or without payload on a channel.
+
+```go
+e = db.Notify("notification_channel") // empty payload
+e = db.Notify("notification_channel", "payload 1", "payload 2", "test")
+```
+
+When seding a payload, the strings are joined together. Therfore the payload sent with previous call to `Notify` is: `payload 1, payload 2, test`
+
 ## Differences
 
 ### Select and Where call order
@@ -691,6 +734,75 @@ var nsNew igor.JSON
 if e = db.Model(User{}).Select("notify_story").Where(&user).Scan(&nsNew); e != nil {
     t.Errorf("Problem scanning into igor.JSON: %s\n", e.Error())
 }
+```
+
+### LISTEN / NOTIFY support
+PostgreSQL give us a beautiful method to avoid polling the DBMS, using a simple publish/subscribe model over database connections (read more on the [docs](http://www.postgresql.org/docs/current/static/sql-notify.html)).
+
+Igor gives you the ability to generate notification and subscribe to notifications sent over a channel, using the methods `Listen` and `Notify`.
+
+Bevelow there's a working example:
+
+```go
+count := 0
+if e = db.Listen("notification_without_payload", func(payload ...string) {
+    count++
+    t.Log("Received notification on channel: notification_without_payload\n")
+}); e != nil {
+    t.Fatalf("Unalbe to listen on channel: %s\n", e.Error())
+}
+
+for i := 0; i < 4; i++ {
+    if e = db.Notify("notification_without_payload"); e != nil {
+        t.Fatalf("Unable to send notification: %s\n", e.Error())
+    }
+}
+
+// wait some time to handle all notifications, because are asynchronous
+time.Sleep(100 * time.Millisecond)
+if count != 4 {
+    t.Errorf("Expected to receive 4 notifications, but counted only: %d\n", count)
+}
+
+// listen on an opened channel should fail
+if e = db.Listen("notification_without_payload", func(payload ...string) {}); e == nil {
+    t.Errorf("Listen on an opened channel should fail, but succeeded\n")
+}
+
+// Handle payload
+
+// listen on more channels, with payload
+count = 0
+if e = db.Listen("np", func(payload ...string) {
+    count++
+    t.Logf("channel np: received payload: %s\n", payload)
+}); e != nil {
+    t.Fatalf("Unalbe to listen on channel: %s\n", e.Error())
+}
+
+// test sending payload with notify
+for i := 0; i < 4; i++ {
+    if e = db.Notify("np", strconv.Itoa(i)+" payload"); e != nil {
+        t.Fatalf("Unable to send notification with payload: %s\n", e.Error())
+    }
+}
+
+// wait some time to handle all notifications
+time.Sleep(100 * time.Millisecond)
+if count != 4 {
+    t.Errorf("Expected to receive 4 notifications, but counted only: %d\n", count)
+}
+
+// test unlisten
+if e = db.Unlisten("notification_without_payload"); e != nil {
+    t.Errorf("Unable to unlisten from notification_without_payload, got: %s\n", e.Error())
+}
+
+// test UnlistenAll
+if e = db.UnlistenAll(); e != nil {
+    t.Errorf("Unable to unlistenAll, got: %s\n", e.Error())
+}
+
 ```
 
 ### Contributing
