@@ -200,7 +200,7 @@ func TestModelCreateUpdatesSelectDelete(t *testing.T) {
 	// Testing first
 	var p Profile
 	if e = db.First(&p, user.Counter); e != nil {
-		t.Error("First failed: %s\n", e.Error())
+		t.Errorf("First failed: %s\n", e.Error())
 	}
 
 	if !reflect.DeepEqual(p, user.Profile) {
@@ -273,7 +273,7 @@ func TestJoinsTableSelectDeleteWhere(t *testing.T) {
 	// Count
 	var count uint8
 	if e = db.Model(User{}).Count(&count); e != nil {
-		t.Error("problem counting users: %s\n", e.Error())
+		t.Errorf("problem counting users: %s\n", e.Error())
 	}
 
 	if count != 6 {
@@ -303,9 +303,9 @@ func TestJSON(t *testing.T) {
 	var ns igor.JSON = make(igor.JSON)
 
 	ns["0"] = struct {
-		From    uint64 `json:from`
-		To      uint64 `json:to`
-		Message string `json:message`
+		From    uint64 `json:"from"`
+		To      uint64 `json:"to"`
+		Message string `json:"message"`
 	}{
 		From:    1,
 		To:      1,
