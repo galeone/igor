@@ -34,6 +34,10 @@ func (js JSON) Value() (driver.Value, error) {
 
 // Scan implements sql.Scanner interface
 func (js *JSON) Scan(src interface{}) error {
+	if src == nil {
+		*js = make(JSON)
+		return nil
+	}
 	source, ok := src.([]byte)
 	if !ok {
 		return errors.New("Type assertion .([]byte) failed.")
