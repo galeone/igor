@@ -2,6 +2,7 @@
 igor is an abstraction layer for PostgreSQL, written in Go. Igor syntax is (almost) compatible with [GORM](https://github.com/jinzhu/gorm "The fantastic ORM library for Golang, aims to be developer friendly").
 
 [![GoDoc](https://godoc.org/github.com/galeone/igor?status.svg)](https://godoc.org/github.com/galeone/igor)
+[![Build Status](https://travis-ci.org/galeone/igor.svg?branch=master)](https://travis-ci.org/galeone/igor)
 
 ## When to use igor
 You should use igor when your DBMS is PostgreSQL and you want to place an abstraction layer on top of it and do CRUD operations in a smart, easy, secure and fast way.
