@@ -3,8 +3,8 @@ language: go
 go:
     - tip
 
-services:
-    - postgresql
+addons:
+    postgresql: "9.4"
 
 before_script:
     - psql -c 'CREATE ROLE igor LOGIN;' -U postgres
