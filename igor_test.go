@@ -94,8 +94,12 @@ func init() {
 
 	// Exec raw query to create tables and test transactions (and Exec)
 	tx := db.Begin()
-	tx.Exec("DROP TABLE IF EXISTS users CASCADE")
-	tx.Exec(`CREATE TABLE users (
+	e = tx.Exec("DROP TABLE IF EXISTS users CASCADE")
+	if e != nil {
+		panic(e.Error())
+	}
+
+	e = tx.Exec(`CREATE TABLE users (
     counter bigserial NOT NULL PRIMARY KEY,
     last timestamp without time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
     notify_story jsonb DEFAULT '{}'::jsonb NOT NULL,
@@ -115,9 +119,16 @@ func init() {
     http_user_agent text DEFAULT ''::text NOT NULL,
     registration_time timestamp(0) with time zone DEFAULT now() NOT NULL
 	)`)
+	if e != nil {
+		panic(e.Error())
+	}
 
-	tx.Exec("DROP TABLE IF EXISTS profiles CASCADE")
-	tx.Exec(`CREATE TABLE profiles (
+	e = tx.Exec("DROP TABLE IF EXISTS profiles CASCADE")
+	if e != nil {
+		panic(e.Error())
+	}
+
+	e = tx.Exec(`CREATE TABLE profiles (
     counter bigserial NOT NULL PRIMARY KEY,
     website character varying(350) DEFAULT ''::character varying NOT NULL,
     quotes text DEFAULT ''::text NOT NULL,
@@ -138,8 +149,14 @@ func init() {
     closed boolean DEFAULT false NOT NULL,
     template_variables jsonb DEFAULT '{}'::jsonb NOT NULL
 	)`)
+	if e != nil {
+		panic(e.Error())
+	}
 
-	tx.Exec("ALTER TABLE profiles ADD CONSTRAINT profiles_users_fk FOREIGN KEY(counter) references users(counter) ON DELETE CASCADE")
+	e = tx.Exec("ALTER TABLE profiles ADD CONSTRAINT profiles_users_fk FOREIGN KEY(counter) references users(counter) ON DELETE CASCADE")
+	if e != nil {
+		panic(e.Error())
+	}
 
 	if e = tx.Commit(); e != nil {
 		panic(e.Error())
