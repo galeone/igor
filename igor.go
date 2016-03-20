@@ -56,6 +56,12 @@ func Connect(connectionString string) (*Database, error) {
 	if db.db, e = sql.Open("postgres", connectionString); e != nil {
 		return nil, e
 	}
+
+	// Ping the database to see if the connection is real
+	if e = db.DB().Ping(); e != nil {
+		return nil, errors.New("Connection failed. Unable to ping the DB")
+	}
+
 	db.connectionString = connectionString
 	db.clear()
 	return db, nil

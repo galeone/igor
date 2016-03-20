@@ -88,6 +88,11 @@ func (User) TableName() string {
 }
 
 func init() {
+
+	if db, e = igor.Connect("user=donotexists dbname=wat sslmode=error"); e == nil {
+		panic(fmt.Sprintf("Connect with a wrong connection string shoudl fail, but succeeded"))
+	}
+
 	if db, e = igor.Connect("user=igor dbname=igor sslmode=disable"); e != nil {
 		panic(e.Error())
 	}
@@ -234,6 +239,11 @@ func TestModelCreateUpdatesSelectDelete(t *testing.T) {
 		t.Errorf("Updates should work but got: %s\n", e.Error())
 	}
 
+	// Scan without parameters should fail
+	if e = db.Model(User{}).Select("lang").Where(user).Scan(); e == nil {
+		t.Error("Scan without a parameter should fail, but succeeded")
+	}
+
 	// Select lang stored in the db
 	var lang string
 	if e = db.Model(User{}).Select("lang").Where(user).Scan(&lang); e != nil {
@@ -246,6 +256,11 @@ func TestModelCreateUpdatesSelectDelete(t *testing.T) {
 
 	if e = db.Delete(&user); e != nil {
 		t.Errorf("Delete of a user (using the primary key) shoudl work, but got: %s\n", e.Error())
+	}
+
+	// Now use is empty. Thus a new .Delete(&user) should fail
+	if e = db.Delete(&user); e == nil {
+		t.Error("Delete of an empty object should fail, but succeeded")
 	}
 }
 
