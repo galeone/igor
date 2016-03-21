@@ -34,7 +34,7 @@ var e error
 
 // Define models
 type Profile struct {
-	Counter        uint64 `gorm:"primary_key"`
+	Counter        uint64 `igor:"primary_key"`
 	Website        string
 	Quotes         string
 	Biography      string
@@ -62,7 +62,7 @@ func (Profile) TableName() string {
 // The User type do not have every field with a counter part on the db side
 // as you can see in init(). The non present fields, have a default value associated and handled by the DBMS
 type User struct {
-	Counter          uint64    `gorm:"primary_key"`
+	Counter          uint64    `igor:"primary_key"`
 	Last             time.Time `sql:"default:(now() at time zone 'utc')"`
 	NotifyStory      igor.JSON `sql:"default:'{}'::jsonb"`
 	Private          bool

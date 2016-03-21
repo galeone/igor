@@ -301,7 +301,7 @@ func primaryKey(s interface{}) (key string, value interface{}) {
 				key, value = primaryKey(fieldValue.Interface())
 			}
 		default:
-			tag := strings.ToLower(fieldType.Tag.Get("gorm"))
+			tag := strings.ToLower(fieldType.Tag.Get("igor"))
 			tagValue := strings.Split(tag, ",")
 			sort.Strings(tagValue)
 			idx := sort.SearchStrings(tagValue, "primary_key")
@@ -336,10 +336,10 @@ func namingConvention(name string) string {
 }
 
 // getColumnName returns the column name of the specified field of the struct
-// it's the name of the field if the field has not a `gorm:column` value spcified
+// it's the name of the field if the field has not a `igor:column` value spcified
 // the field is a valid sql value (thus in case, the name is escaped using handleIdentifier)
 func getColumnName(field reflect.StructField) (fieldName string) {
-	ts := parseTagSetting(field.Tag.Get("gorm"))
+	ts := parseTagSetting(field.Tag.Get("igor"))
 	if ts["column"] != "" {
 		fieldName = ts["column"]
 	} else {

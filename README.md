@@ -45,13 +45,14 @@ The main differences are:
 
 - Igor does not handle associations. Thus, if you have a field that refers to another table, disable it with the annotation `sql:"-"` (see the code below).
 - Every model __must__ implement the `igor.DBTable` interface. Therefore every model must have the method `TableName() string`, that returns the table name associated with the model.
-- Every model __must__ explicit the primary key field (using the tag `gorm:"primary_key"`).
+- Every model __must__ explicit the primary key field (using the tag `igor:"primary_key"`).
+- Since igor does not deal with DDL, `sql:"type:<type>"` is ignored.
 
 Like:
 
 ```go
 type User struct {
-	Counter uint64 `gorm:"primary_key"`
+	Counter uint64 `igor:"primary_key"`
     Username string
     Password string
     Name string
@@ -126,7 +127,7 @@ Joins append the join string to the current model
 
 ```go
 type Post struct {
-	Hpid    uint64    `gorm:"primary_key"`
+	Hpid    uint64    `igor:"primary_key"`
 	From    uint64
 	To      uint64
 	Pid     uint64    `sql:"default:0"`
@@ -327,7 +328,7 @@ type Blacklist struct {
 	To         uint64
 	Motivation string
 	Time       time.Time `sql:"default:(now() at time zone 'utc')"`
-	Counter    uint64    `gorm:"primary_key"`
+	Counter    uint64    `igor:"primary_key"`
 }
 
 func (Blacklist) TableName() string {
@@ -557,9 +558,16 @@ The reason is that igor generates queries in the form `SELECT table.field1, tabl
 In order to avoid ambiguities when using `Joins`, the `RETURNING` part of the query must be in the form `table.field1, table.filed2, ...`, and table is the `TableName()` result of the `DBModel` passed as `Model` argument.
 
 ### Models
-Igor models are __the same__ as GORM models (you must use the `gorm` tag field and `sql` tag fields as used in GORM).
+Igor models are __the same__ as GORM models (except that you have to use the `igor` tag field to define the primary key). The `sql` tag field is used to define default value and column value. Eg:
 
-The only difference is that igor models require the implementation of the `DBModel` interface.
+```go
+type Test struct {
+    ID      uint64 `igor:"primary_key" sql:"column:id_column"`
+    Time    time.Time `sql:"default:(now() at time zone 'utc')"`
+}
+```
+
+The other main difference is that igor models require the implementation of the `DBModel` interface.
 
 In GORM, you can optionally define the `TableName` method on your Model. With igor this is mandatory.
 
