@@ -162,11 +162,16 @@ func (db *Database) Pluck(column string, slice interface{}) error {
 	return db.Scan(slice)
 }
 
-// Count sets the query result to be count(*) and scan the result into value.
+// Count sets the query result to be count(<primary_key column of the selected model>) and scan the result into value.
 // *It executes the query* (calls Scan internally).
 // It panics if the query is not well formulated.
 func (db *Database) Count(value *uint8) error {
-	db = db.Select("count(*)")
+	key, _ := primaryKey(db.models[0])
+	if key != "" {
+		db.Select("count(" + handleIdentifier(key) + ")")
+	} else {
+		db = db.Select("count(*)")
+	}
 	return db.Scan(value)
 }
 
