@@ -394,9 +394,10 @@ func (db *Database) Where(s interface{}, args ...interface{}) *Database {
 			db.whereFields = append(db.whereFields, escapedTableName+"."+handleIdentifier(key))
 			db.whereValues = append(db.whereValues, value)
 		} else {
-			for i := 0; i < in.NumField(); i++ {
-				fieldValue := in.Field(i)
-				fieldType := in.Type().Field(i)
+			// handle embedded anonymous struct
+			fields := getFields(s)
+			for _, fieldType := range fields {
+				fieldValue := in.FieldByName(fieldType.Name)
 				if !isBlank(fieldValue) {
 					db.whereFields = append(db.whereFields, escapedTableName+"."+getColumnName(fieldType))
 					db.whereValues = append(db.whereValues, fieldValue.Interface())
