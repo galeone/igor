@@ -218,6 +218,9 @@ func (db *Database) Scan(dest ...interface{}) error {
 					} else {
 						panic(sliceType)
 					}
+				case reflect.Invalid:
+				default:
+					panic("Remember to initialize the scan arguments with make() when using pointers")
 				}
 			}
 		}
