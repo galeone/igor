@@ -607,25 +607,6 @@ func (db *Database) buildWhere() string {
 	return query.String()
 }
 
-// escapeIfNeeded escapes the value if needed in query generation
-func escapeIfNeeded(value string) string {
-	trimmed := strings.TrimSpace(value)
-	// default:'string value' OR
-	//sql expression, like: default:"(now() at timezone 'utc') or now() or user_defined_function(parameters.. )
-	if (strings.HasPrefix(trimmed, "'") && strings.HasSuffix(trimmed, "'")) ||
-		strings.HasSuffix(trimmed, ")") {
-		return trimmed
-	}
-
-	lowered := strings.ToLower(trimmed)
-	// null and other sql reserved keyworks (used a default values) can't be placed between single quotes
-	if lowered == "null" || strings.HasPrefix(lowered, "current_") {
-		return lowered
-	}
-	// default:'something' like:default:'false' should be between single quotes
-	return "'" + trimmed + "'"
-}
-
 // fieldValue returns an interface{} that's the value of fieldVal if fieldVal is not blank
 // if fieldVal is blank and the field has a default value, return the defalt value
 // oherwise returns nil
