@@ -828,10 +828,12 @@ createuser -U postgres igor
 createdb -U postgres igor igor
 ```
 
+[godep](https://github.com/tools/godep) is required.
+
 Now you can test igor with:
 
 ```sh
-go test
+godep go test
 ```
 
 ### License
