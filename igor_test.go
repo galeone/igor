@@ -376,7 +376,7 @@ func TestNotifications(t *testing.T) {
 		count++
 		t.Log("Received notification on channel: notification_without_payload\n")
 	}); e != nil {
-		t.Fatalf("Unalbe to listen on channel: %s\n", e.Error())
+		t.Fatalf("Unable to listen on channel: %s\n", e.Error())
 	}
 
 	for i := 0; i < 4; i++ {
@@ -404,7 +404,7 @@ func TestNotifications(t *testing.T) {
 		count++
 		t.Logf("channel np: received payload: %s\n", payload)
 	}); e != nil {
-		t.Fatalf("Unalbe to listen on channel: %s\n", e.Error())
+		t.Fatalf("Unable to listen on channel: %s\n", e.Error())
 	}
 
 	// test sending payload with notify
