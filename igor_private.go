@@ -167,7 +167,8 @@ func (db *Database) clear() {
 	db.tables = nil
 	db.joinTables = nil
 	db.models = nil
-	db.selectValues = nil
+	db.cteSelectValues = nil
+	db.cte = ""
 	db.selectFields = ""
 	db.updateCreateValues = nil
 	db.updateCreateFields = nil
@@ -417,6 +418,8 @@ func (db *Database) buildSelect() string {
 	}
 
 	var query bytes.Buffer
+	query.WriteString(db.buildCTE())
+
 	// Select
 	var fields string
 	query.WriteString("SELECT ")
@@ -469,6 +472,7 @@ func (db *Database) buildSelect() string {
 // buildUpdate returns the generated SQL for the UPDATE statement. Panics if it can't generate a query
 func (db *Database) buildUpdate() string {
 	var query bytes.Buffer
+	query.WriteString(db.buildCTE())
 	query.WriteString("UPDATE ")
 
 	// Model only
@@ -508,6 +512,7 @@ func (db *Database) buildUpdate() string {
 // buildCreate returns the generated SQL for the CREATE statement. Panics if it can't generate a query
 func (db *Database) buildCreate() string {
 	var query bytes.Buffer
+	query.WriteString(db.buildCTE())
 	query.WriteString("INSERT INTO ")
 
 	// Model only
@@ -555,9 +560,15 @@ func (db *Database) buildReturning() string {
 	return query.String()
 }
 
+// buildCTE returns the CTE if defined
+func (db *Database) buildCTE() string {
+	return db.replaceMarks(db.cte) + " "
+}
+
 // buildDelete returns the generated SQL for the DELETE statement. Panics if it can't geerate a query
 func (db *Database) buildDelete() string {
 	var query bytes.Buffer
+	query.WriteString(db.buildCTE())
 	query.WriteString("DELETE FROM ")
 
 	// Model only

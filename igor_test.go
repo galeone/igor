@@ -430,3 +430,20 @@ func TestNotifications(t *testing.T) {
 		t.Errorf("Unable to unlistenAll, got: %s\n", e.Error())
 	}
 }
+
+func TestCTE(t *testing.T) {
+	//db.Log(nil)
+	createUser()
+	createUser()
+	createUser()
+	var usernames []string
+	e = db.CTE(`WITH full_users_id AS (
+		SELECT counter FROM users WHERE name = ?)`, "Paolo").Table("full_users_id as fui").Select("username").Joins("JOIN users ON fui.counter = users.counter").Scan(&usernames)
+	if e != nil {
+		t.Fatalf(e.Error())
+	}
+	if len(usernames) != 3 {
+		t.Fatalf("Expected 3, but got: %d\n", len(usernames))
+	}
+	db.Model(User{}).Where("name", "Paolo").Delete(User{})
+}

@@ -96,8 +96,15 @@ func (db *Database) Table(table string) *Database {
 
 // Select sets the fields to retrieve. Appends fields to SELECT
 func (db *Database) Select(fields string, args ...interface{}) *Database {
-	db.selectFields = db.replaceMarks(fields)
-	db.selectValues = args
+	db.selectFields += db.replaceMarks(fields)
+	db.cteSelectValues = append(db.cteSelectValues, args...)
+	return db
+}
+
+//  defines a Common Table Expression. Parameters are allowed
+func (db *Database) CTE(cte string, args ...interface{}) *Database {
+	db.cte += cte
+	db.cteSelectValues = append(db.cteSelectValues, args...)
 	return db
 }
 
@@ -231,7 +238,7 @@ func (db *Database) Scan(dest ...interface{}) error {
 		}
 
 		// Pass query parameters and execute it
-		if rows, err = stmt.Query(append(db.selectValues, db.whereValues...)...); err != nil {
+		if rows, err = stmt.Query(append(db.cteSelectValues, db.whereValues...)...); err != nil {
 			return err
 		}
 

@@ -45,7 +45,8 @@ type Database struct {
 	joinTables         []string
 	models             []DBModel
 	logger             *log.Logger
-	selectValues       []interface{}
+	cte                string
+	cteSelectValues    []interface{}
 	selectFields       string
 	updateCreateValues []interface{}
 	updateCreateFields []string

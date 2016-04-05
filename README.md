@@ -71,6 +71,7 @@ type (User) TableName() string {
 - [Model](#model)
 - [Joins](#joins)
 - [Table](#table)
+- [CTE](#cte)
 - [Select](#select)
 - [Where](#where)
 - [Create](#create)
@@ -156,7 +157,7 @@ db.Model(UserPost{}).Order("hpid DESC").
 ```
 
 generates:
-```go
+```sql
 SELECT posts.hpid,posts."from",posts."to",posts.pid,posts.message,posts."time",posts.lang,posts.news,posts.closed
 FROM posts
 JOIN users ON users.counter = posts.to
@@ -164,9 +165,31 @@ WHERE "to" = $1
 ```
 
 ### Table
- Table appends the table string to FROM. It has the same behavior of Model, but passing the table name directly as a string
+Table appends the table string to FROM. It has the same behavior of Model, but passing the table name directly as a string
 
 See example in [Joins](#joins)
+
+### CTE
+CTE allows to define a Common Table Expression that precedes the query.
+
+__Warning__: use it with the [Table](#table) method.
+
+```go
+var usernames []string
+db.CTE(`WITH full_users_id AS (
+SELECT counter FROM users WHERE name = ?)`, "Paolo").
+Table("full_users_id as fui").
+Select("username").
+Joins("JOIN users ON fui.counter = users.counter").Scan(&usernames)
+```
+
+generates:
+```sql
+WITH full_users_id AS (
+  SELECT counter FROM users WHERE name = $1
+)
+SELECT username FROM full_users_id as fui JOIN users ON fui.counter = users.counter ;
+```
 
 ### Select
 Select sets the fields to retrieve. Appends fields to SELECT (See example in [Model](#model)).
