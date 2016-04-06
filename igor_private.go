@@ -562,7 +562,8 @@ func (db *Database) buildReturning() string {
 
 // buildCTE returns the CTE if defined
 func (db *Database) buildCTE() string {
-	return db.replaceMarks(db.cte) + " "
+	// replaceMarks has been called previously, in order to prevent wrong parameter order
+	return db.cte + " "
 }
 
 // buildDelete returns the generated SQL for the DELETE statement. Panics if it can't geerate a query

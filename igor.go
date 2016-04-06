@@ -101,9 +101,9 @@ func (db *Database) Select(fields string, args ...interface{}) *Database {
 	return db
 }
 
-//  defines a Common Table Expression. Parameters are allowed
+// CTE defines a Common Table Expression. Parameters are allowed
 func (db *Database) CTE(cte string, args ...interface{}) *Database {
-	db.cte += cte
+	db.cte += db.replaceMarks(cte)
 	db.cteSelectValues = append(db.cteSelectValues, args...)
 	return db
 }
@@ -194,6 +194,7 @@ func (db *Database) First(dest DBModel, key interface{}) error {
 // Scan build the SELECT query and scans the query result query into dest.
 // Panics if scan fails or the query fail
 func (db *Database) Scan(dest ...interface{}) error {
+	defer db.clear()
 	ld := len(dest)
 	if ld == 0 {
 		return errors.New("Required at least one parameter to Scan method")
@@ -247,10 +248,7 @@ func (db *Database) Scan(dest ...interface{}) error {
 		rows = db.rawRows
 	}
 
-	defer func() {
-		rows.Close()
-		db.clear()
-	}()
+	defer rows.Close()
 
 	if ld == 1 {
 		// if is a slice, find first element to decide how to use scan
