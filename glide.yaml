@@ -1,0 +1,3 @@
+package: github.com/galeone/igor
+import:
+- package: github.com/lib/pq
