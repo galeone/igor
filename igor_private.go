@@ -681,3 +681,47 @@ func parseTagSetting(str string) map[string]string {
 	}
 	return setting
 }
+
+// clone clones the current Database in order to be thread safe
+func (db *Database) clone() *Database {
+	clone := &Database{
+		connection:       db.connection,
+		db:               db.db,
+		rawRows:          db.rawRows,
+		logger:           db.logger,
+		cte:              db.cte,
+		selectFields:     db.selectFields,
+		order:            db.order,
+		limit:            db.limit,
+		offset:           db.offset,
+		varCount:         db.varCount,
+		connectionString: db.connectionString,
+		listener:         db.listener,
+	}
+
+	clone.tables = make([]string, len(db.tables))
+	copy(clone.tables, db.tables)
+
+	clone.joinTables = make([]string, len(db.joinTables))
+	copy(clone.joinTables, db.joinTables)
+
+	clone.models = make([]DBModel, len(db.models))
+	copy(clone.models, db.models)
+
+	clone.cteSelectValues = make([]interface{}, len(db.cteSelectValues))
+	copy(clone.cteSelectValues, db.cteSelectValues)
+
+	clone.updateCreateValues = make([]interface{}, len(db.updateCreateValues))
+	copy(clone.updateCreateValues, db.updateCreateValues)
+
+	clone.updateCreateFields = make([]string, len(db.updateCreateFields))
+	copy(clone.updateCreateFields, db.updateCreateFields)
+
+	clone.whereValues = make([]interface{}, len(db.whereValues))
+	copy(clone.whereValues, db.whereValues)
+
+	clone.whereFields = make([]string, len(db.whereFields))
+	copy(clone.whereFields, db.whereFields)
+
+	return clone
+}

@@ -265,6 +265,9 @@ func TestModelCreateUpdatesSelectDelete(t *testing.T) {
 }
 
 func TestJoinsTableSelectDeleteWhere(t *testing.T) {
+	logger := log.New(os.Stdout, "igor-log: ", log.LUTC)
+	db.Log(logger)
+
 	// create 6 user and profiles
 	var ids []uint64
 	for i := 0; i < 6; i++ {
@@ -286,8 +289,6 @@ func TestJoinsTableSelectDeleteWhere(t *testing.T) {
 	// select $1::int, $2::int, $3::it, counter from users join profiles on user.counter = profiles.counter
 	// where user.counter = $4
 	var one, two, three, four int
-	logger := log.New(os.Stdout, "igor-log: ", log.LUTC)
-	db.Log(logger)
 	u := (User{}).TableName()
 	p := (Profile{}).TableName()
 	if e = db.Select("?::int, ?::int, ?::int, "+u+".counter", 1, 2, 3).

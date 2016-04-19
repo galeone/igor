@@ -75,6 +75,7 @@ func (db *Database) Log(logger *log.Logger) *Database {
 
 // Model sets the table name for the current query
 func (db *Database) Model(model DBModel) *Database {
+	db = db.clone()
 	db.tables = append(db.tables, handleIdentifier(model.TableName()))
 	db.models = append(db.models, model)
 	return db
@@ -82,6 +83,7 @@ func (db *Database) Model(model DBModel) *Database {
 
 // Joins append the join string to the current model
 func (db *Database) Joins(joins string) *Database {
+	db = db.clone()
 	db.joinTables = append(db.joinTables, joins)
 	// we can't infer model from the join string (can contain everything)
 	return db
@@ -90,12 +92,14 @@ func (db *Database) Joins(joins string) *Database {
 // Table appends the table string to FROM. It has the same behavior of Model, but
 // passing the tablename directly as a string
 func (db *Database) Table(table string) *Database {
+	db = db.clone()
 	db.tables = append(db.tables, handleIdentifier(table))
 	return db
 }
 
 // Select sets the fields to retrieve. Appends fields to SELECT
 func (db *Database) Select(fields string, args ...interface{}) *Database {
+	db = db.clone()
 	db.selectFields += db.replaceMarks(fields)
 	db.cteSelectValues = append(db.cteSelectValues, args...)
 	return db
@@ -103,6 +107,7 @@ func (db *Database) Select(fields string, args ...interface{}) *Database {
 
 // CTE defines a Common Table Expression. Parameters are allowed
 func (db *Database) CTE(cte string, args ...interface{}) *Database {
+	db = db.clone()
 	db.cte += db.replaceMarks(cte)
 	db.cteSelectValues = append(db.cteSelectValues, args...)
 	return db
@@ -121,7 +126,7 @@ func (db *Database) Delete(value DBModel) error {
 
 	// If where is empty, try to infer a primary key by value
 	// otherwise buildDelete panics (where is mandatory)
-	db.Where(value)
+	db = db.Where(value)
 
 	// Compile query
 	var stmt *sql.Stmt
@@ -146,14 +151,13 @@ func (db *Database) Delete(value DBModel) error {
 // It handles default values when the field is empty.
 func (db *Database) Updates(value DBModel) error {
 	// Build where condition for update
-	err := db.Where(value).commonCreateUpdate(value, db.buildUpdate)
-	return err
+	clone := db.Where(value)
+	return clone.commonCreateUpdate(value, clone.buildUpdate)
 }
 
 // Create creates a new row into the Database, of type value and with its fields
 func (db *Database) Create(value DBModel) error {
-	err := db.commonCreateUpdate(value, db.buildCreate)
-	return err
+	return db.commonCreateUpdate(value, db.buildCreate)
 }
 
 // Pluck fills the slice with the query result.
@@ -175,7 +179,7 @@ func (db *Database) Pluck(column string, slice interface{}) error {
 func (db *Database) Count(value *uint8) error {
 	key, _ := primaryKey(db.models[0])
 	if key != "" {
-		db.Select("count(" + handleIdentifier(key) + ")")
+		db = db.Select("count(" + handleIdentifier(key) + ")")
 	} else {
 		db = db.Select("count(*)")
 	}
@@ -317,6 +321,7 @@ func (db *Database) Exec(query string, args ...interface{}) error {
 // Raw panics if can't build the query
 // To fetch results call Scan
 func (db *Database) Raw(query string, args ...interface{}) *Database {
+	db = db.clone()
 	var err error
 	stmt := db.commonRawQuery(query, args...)
 	// Pass query parameters and executes the query
@@ -332,6 +337,7 @@ func (db *Database) Raw(query string, args ...interface{}) *Database {
 // or it can be a string, in that case args are the query parameters. Use ? placeholder
 // If a where condition can't be generated it panics
 func (db *Database) Where(s interface{}, args ...interface{}) *Database {
+	db = db.clone()
 	if reflect.TypeOf(s).Kind() == reflect.String {
 		whereClause := reflect.ValueOf(s).String()
 		// replace question marks with $n
@@ -394,7 +400,7 @@ func (db *Database) Where(s interface{}, args ...interface{}) *Database {
 
 		// if a model has not been setted, set the model as s.TableName()
 		if len(db.tables) == 0 {
-			db.Model(s.(DBModel))
+			db = db.Model(s.(DBModel))
 		}
 
 		escapedTableName := handleIdentifier(s.(DBModel).TableName())
@@ -419,18 +425,21 @@ func (db *Database) Where(s interface{}, args ...interface{}) *Database {
 
 // Limit sets the LIMIT value to the query
 func (db *Database) Limit(limit int) *Database {
+	db = db.clone()
 	db.limit = limit
 	return db
 }
 
 // Offset sets the OFFSET value to the query
 func (db *Database) Offset(offset int) *Database {
+	db = db.clone()
 	db.offset = offset
 	return db
 }
 
 // Order sets the ORDER BY value to the query
 func (db *Database) Order(value string) *Database {
+	db = db.clone()
 	db.order = handleIdentifier(value)
 	return db
 }
@@ -447,6 +456,7 @@ func (db *Database) DB() *sql.DB {
 // panics if begin has been already called
 // Returns nil on error (if logger is enabled write error on log)
 func (db *Database) Begin() *Database {
+	db = db.clone()
 	// Initialize transaction
 	var tx *sql.Tx
 	var err error
