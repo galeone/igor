@@ -18,8 +18,9 @@ package igor
 
 import (
 	"database/sql"
-	"github.com/lib/pq"
 	"log"
+
+	"github.com/lib/pq"
 )
 
 // DBModel is the interface implemented by every struct that is a relation on the DB
@@ -58,4 +59,5 @@ type Database struct {
 	varCount           int
 	connectionString   string
 	listener           *pq.Listener
+	listenerCallbacks  map[string]func(...string)
 }

@@ -19,9 +19,10 @@ package igor
 import (
 	"errors"
 	"fmt"
-	"github.com/lib/pq"
 	"strings"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 // Listen executes `LISTEN channel`. Uses f to handle received notifications on chanel.
@@ -29,6 +30,8 @@ import (
 func (db *Database) Listen(channel string, f func(payload ...string)) error {
 	// Create a new listener only if Listen is called for the first time
 	if db.listener == nil {
+		db.listenerCallbacks = make(map[string]func(...string))
+
 		reportProblem := func(ev pq.ListenerEventType, err error) {
 			if err != nil && db.logger != nil {
 				db.printLog(err.Error())
@@ -39,28 +42,34 @@ func (db *Database) Listen(channel string, f func(payload ...string)) error {
 		if db.listener == nil {
 			return errors.New("Unable to create a new listener")
 		}
+
+		// detach event handler
+		go func() {
+			for {
+				select {
+				case notification := <-db.listener.Notify:
+					go db.listenerCallbacks[notification.Channel](notification.Extra)
+				case <-time.After(90 * time.Second):
+					go func() {
+						if db.listener.Ping() != nil {
+							db.printLog(fmt.Sprintf("Error checking server connection for channel %s\n", channel))
+							return
+						}
+					}()
+				}
+			}
+		}()
 	}
+
+	if _, alreadyIn := db.listenerCallbacks[channel]; alreadyIn {
+		return errors.New("Already subscribed to channel " + channel)
+	}
+
+	db.listenerCallbacks[channel] = f
 
 	if err := db.listener.Listen(channel); err != nil {
 		return err
 	}
-
-	// detach event handler
-	go func() {
-		for {
-			select {
-			case notification := <-db.listener.Notify:
-				go f(notification.Extra)
-			case <-time.After(90 * time.Second):
-				go func() {
-					if db.listener.Ping() != nil {
-						db.printLog(fmt.Sprintf("Error checking server connection for channel %s\n", channel))
-						return
-					}
-				}()
-			}
-		}
-	}()
 
 	return nil
 }
