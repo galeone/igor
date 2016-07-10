@@ -157,6 +157,7 @@ func (db *Database) Updates(value DBModel) error {
 
 // Create creates a new row into the Database, of type value and with its fields
 func (db *Database) Create(value DBModel) error {
+	db = db.clone()
 	return db.commonCreateUpdate(value, db.buildCreate)
 }
 
