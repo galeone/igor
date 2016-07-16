@@ -59,7 +59,7 @@ func Connect(connectionString string) (*Database, error) {
 
 	// Ping the database to see if the connection is real
 	if e = db.DB().Ping(); e != nil {
-		return nil, errors.New("Connection failed. Unable to ping the DB")
+		return nil, errors.New("Connection failed. Unable to ping the DB: " + e.Error())
 	}
 
 	db.connectionString = connectionString
