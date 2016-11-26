@@ -585,7 +585,7 @@ Igor models are __the same__ as GORM models (except that you have to use the `ig
 
 ```go
 type Test struct {
-    ID      uint64 `igor:"primary_key" sql:"column:id_column"`
+    ID      uint64 `igor:"primary_key column:id_column"`
     Time    time.Time `sql:"default:(now() at time zone 'utc')"`
 }
 ```
