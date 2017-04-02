@@ -460,7 +460,7 @@ func (db *Database) buildSelect() string {
 	// Offset (optional)
 	if db.offset != 0 {
 		query.WriteString(" OFFSET ")
-		query.WriteString(strconv.Itoa(db.limit))
+		query.WriteString(strconv.Itoa(db.offset))
 	}
 
 	query.WriteString(";")
