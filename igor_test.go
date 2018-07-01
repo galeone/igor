@@ -327,13 +327,13 @@ func TestJoinsTableSelectDeleteWhere(t *testing.T) {
 
 func TestJSON(t *testing.T) {
 	user := createUser()
-	var emptyJson igor.JSON = make(igor.JSON)
+	var emptyJSON = make(igor.JSON)
 
-	if !reflect.DeepEqual(user.NotifyStory, emptyJson) {
-		t.Errorf("JSON notifyStory should be empty but got: %s instead of %s\n", user.NotifyStory, emptyJson)
+	if !reflect.DeepEqual(user.NotifyStory, emptyJSON) {
+		t.Errorf("JSON notifyStory should be empty but got: %s instead of %s\n", user.NotifyStory, emptyJSON)
 	}
 
-	var ns igor.JSON = make(igor.JSON)
+	var ns = make(igor.JSON)
 
 	ns["0"] = struct {
 		From    uint64 `json:"from"`
