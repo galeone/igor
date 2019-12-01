@@ -256,6 +256,7 @@ func (db *Database) commonCreateUpdate(value DBModel, builder func() string) err
 	if stmt, err = db.db.Prepare(builder()); err != nil {
 		return err
 	}
+	defer stmt.Close()
 
 	// Pass query parameters and executes the query
 	// set db.rawRows to query results (of returning) in order to make it possible to scan rows into result

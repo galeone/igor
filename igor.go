@@ -134,6 +134,7 @@ func (db *Database) Delete(value DBModel) error {
 	if stmt, err = db.db.Prepare(db.buildDelete()); err != nil {
 		return err
 	}
+	defer stmt.Close()
 
 	// Pass query parameters and executes the query
 	if _, err = stmt.Exec(db.whereValues...); err != nil {
@@ -252,6 +253,7 @@ func (db *Database) Scan(dest ...interface{}) error {
 		if stmt, err = db.db.Prepare(db.buildSelect()); err != nil {
 			return err
 		}
+		defer stmt.Close()
 
 		// Pass query parameters and execute it
 		if rows, err = stmt.Query(append(db.cteSelectValues, db.whereValues...)...); err != nil {
@@ -324,6 +326,7 @@ func (db *Database) Scan(dest ...interface{}) error {
 func (db *Database) Exec(query string, args ...interface{}) error {
 	defer db.clear()
 	stmt := db.commonRawQuery(query, args...)
+	defer stmt.Close()
 	_, e := stmt.Exec(db.whereValues...)
 	return e
 }
@@ -335,6 +338,7 @@ func (db *Database) Raw(query string, args ...interface{}) *Database {
 	db = db.clone()
 	var err error
 	stmt := db.commonRawQuery(query, args...)
+	defer stmt.Close()
 	// Pass query parameters and executes the query
 	if db.rawRows, err = stmt.Query(db.whereValues...); err != nil {
 		db.panicLog(err.Error())
