@@ -1,11 +1,11 @@
 /*
-Copyright 2016-2020 Paolo Galeone. All right reserved.
+Copyright 2016-2022 Paolo Galeone. All right reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -54,7 +54,7 @@ type Profile struct {
 	Closed         bool
 }
 
-//TableName returns the table name associated with the structure
+// TableName returns the table name associated with the structure
 func (Profile) TableName() string {
 	return "profiles"
 }
@@ -82,7 +82,7 @@ type User struct {
 	Profile Profile `sql:"-"`
 }
 
-//TableName returns the table name associated with the structure
+// TableName returns the table name associated with the structure
 func (User) TableName() string {
 	return "users"
 }
@@ -90,7 +90,7 @@ func (User) TableName() string {
 func init() {
 
 	if db, e = igor.Connect("user=donotexists dbname=wat sslmode=error"); e == nil {
-		panic(fmt.Sprintf("Connect with a wrong connection string shoudl fail, but succeeded"))
+		panic("Connect with a wrong connection string shoudl fail, but succeeded")
 	}
 
 	if db, e = igor.Connect("user=igor dbname=igor sslmode=disable"); e != nil {
@@ -319,7 +319,7 @@ func TestJoinsTableSelectDeleteWhere(t *testing.T) {
 
 	// clear slice and pluck again
 	fetchedIds = nil
-	db.Model(User{}).Order("counter asc").Pluck("counter", &fetchedIds)
+	_ = db.Model(User{}).Order("counter asc").Pluck("counter", &fetchedIds)
 	if len(fetchedIds) != 0 {
 		t.Errorf("delete in range failed, pluck returned ids that must have been deleted")
 	}
@@ -366,7 +366,9 @@ func TestJSON(t *testing.T) {
 		t.Errorf("fetched notify story is different from the saved one\n%s vs %s", ns, nsNew)
 	}
 
-	db.Delete(&user)
+	if e = db.Delete(&user); e != nil {
+		t.Errorf("Delete should work but returned %s", e.Error())
+	}
 }
 
 func TestNotifications(t *testing.T) {
@@ -446,5 +448,7 @@ func TestCTE(t *testing.T) {
 	if len(usernames) != 3 {
 		t.Fatalf("Expected 3, but got: %d\n", len(usernames))
 	}
-	db.Model(User{}).Where("name", "Paolo").Delete(User{})
+	if e = db.Model(User{}).Where("name", "Paolo").Delete(User{}); e != nil {
+		t.Errorf("Delete should work but returned %s", e.Error())
+	}
 }

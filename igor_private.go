@@ -1,5 +1,5 @@
 /*
-Copyright 2016-2020 Paolo Galeone. All right reserved.
+Copyright 2016-2022 Paolo Galeone. All right reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+
 	// Blank import required to get PostgreSQL working
 	_ "github.com/lib/pq"
 )
@@ -321,7 +322,7 @@ func primaryKey(s interface{}) (key string, value interface{}) {
 // valid db entity that follows the convention
 func namingConvention(name string) string {
 	// first char is always upper case
-	var ucActual = true
+	var ucActual bool
 	var buffer bytes.Buffer
 	buffer.WriteRune(rune(name[0]))
 	for i := 1; i < len(name); i++ {

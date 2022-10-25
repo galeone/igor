@@ -17,7 +17,7 @@ Thus with igor you __do not__ create a new schema. In general igor does not supp
 - Uses a GORM like syntax
 - Uses the same logic in insertion and update: handle default values in a coherent manner
 - Uses GORM models and conventions (partially, see [Differences](#differences))
-- Exploits PostgreSQL `RETURNING` statement to update models fiels with the updated values (even when changed on db side; e.g. when having a default value)
+- Exploits PostgreSQL `RETURNING` statement to update models fields with the updated values (even when changed on db side; e.g. when having a default value)
 - Automatically handle reserved keywords when used as a table name or fields. Does not quote every field (that's not recommended) but only the ones conflicting with a reserved keyword.
  
 
@@ -118,7 +118,7 @@ var counter uint64
 db.Model(User{}).Select("login(?, ?) AS logged, counter", username, password).Where("LOWER(username) = ?", username).Scan(&logged, &counter);
 ```
 
-generates:
+it generates:
 ```sql
 SELECT login($1, $2) AS logged, counter FROM users WHERE LOWER(username) = $3 ;
 ```
@@ -156,7 +156,7 @@ db.Model(UserPost{}).Order("hpid DESC").
     Where(`"to" = ?`, user.Counter).Scan(&userPost)
 ```
 
-generates:
+it generates:
 ```sql
 SELECT posts.hpid,posts."from",posts."to",posts.pid,posts.message,posts."time",posts.lang,posts.news,posts.closed
 FROM posts
@@ -183,7 +183,7 @@ Select("username").
 Joins("JOIN users ON fui.counter = users.counter").Scan(&usernames)
 ```
 
-generates:
+it generates:
 ```sql
 WITH full_users_id AS (
   SELECT counter FROM users WHERE name = $1
@@ -198,7 +198,7 @@ When select is not specified, every field is selected in the Model order (See ex
 
 __Warning__: calling `Select` using parameters without type is allowed only if the stored procedure on the DBMS define the type.
 
-Eg: if we have a function on postresql that accepts two parameters like
+Eg: if we have a function on PostgreSQL that accepts two parameters like
 ```pgsql
 login(_username text, _pass text, OUT ret boolean) RETURNS boolean
 ```
@@ -208,7 +208,7 @@ we can call this function in that way
 db.Select('login(?,?)', username, password)
 ```
 
-But, if the DBMS can't infer the paramters (in every other case except the one previous mentioned), we __must__ make parameters type explicit.
+But, if the DBMS can't infer the parameters (in every other case except the one previous mentioned), we __must__ make parameters type explicit.
 
 This is due to the use of prepared statements.
 
@@ -227,7 +227,7 @@ Thus:
 db.Model(UserPost{}).Where(&UserPost{Hpid: 1, From:1, To:1})
 ```
 
-generates:
+it generates:
 
 ```sql
 SELECT posts.hpid,posts."from",posts."to",posts.pid,posts.message,posts."time",posts.lang,posts.news,posts.closed
@@ -255,7 +255,7 @@ When using a string, you can use the `?` as placeholder for parameters substitut
 db.Model(UserPost{}).Where(`"to" = ?`, user.Counter)
 ```
 
-generates:
+it generates:
 
  ```sql
 SELECT posts.hpid,posts."from",posts."to",posts.pid,posts.message,posts."time",posts.lang,posts.news,posts.closed
@@ -269,7 +269,7 @@ Wheere supports slices as well:
 db.Model(UserPost{}).Where(`"to" IN (?) OR "from" = ?`, []uint64{1,2,3,4,6}, 88)
 ```
 
-generates:
+it generates:
 
 ```sql
 SELECT posts.hpid,posts."from",posts."to",posts.pid,posts.message,posts."time",posts.lang,posts.news,posts.closed
@@ -282,7 +282,7 @@ Create `INSERT` a new row into the table specified by the DBModel.
 
 `Create` handles default values using the following rules:
 
-If a field is blank and has a default value and this defualt value is the Go Zero value for that field, igor does not generate the query part associated with the insertion of that fields (let the DBMS handle the default value generation).
+If a field is blank and has a default value and this default value is the Go Zero value for that field, igor does not generate the query part associated with the insertion of that fields (let the DBMS handle the default value generation).
 
 If a field is blank and has a default value that's different from the Go Zero value for fhat filed, insert the specified default value.
 
@@ -301,7 +301,7 @@ post := &UserPost{
 db.Create(post)
 ```
 
-generates:
+it generates:
 
 ```sql
 INSERT INTO posts("from","to",pid,message,lang) VALUES ($1,$2,$3,$4,$5)  RETURNING posts.hpid,posts."from",posts."to",posts.pid,posts.message,posts."time",posts.lang,posts.news,posts.closed;
@@ -331,7 +331,7 @@ user.Username = "username changed"
 db.Updates(&user)
 ```
 
-generates:
+it generates:
 
 ```sql
 UPDATE users SET users.username = "username changed" WHERE users.counter = 1 RETURNING users.counter,users.last,users.notify_story,users.private,users.lang,users.username,users.email,users.name,users.surname,users.gender,users.birth_date,users.board_lang,users.timezone,users.viewonline,users.registration_time
@@ -362,7 +362,7 @@ var blacklist []uint64
 db.Model(Blacklist{}).Where(&Blacklist{From: user.Counter}).Pluck(`"to"`, &blacklist)
 ```
 
-generates
+it generates
 
 ```sql
 SELECT "to" FROM blacklist WHERE blacklist."from" = $1
@@ -376,7 +376,7 @@ var count int
 db.Model(Blacklist{}).Where(&Blacklist{From: user.Counter}).Count(&count
 ```
 
-generates:
+it generates:
 
 ```sql
 SELECT COUNT(*) FROM blacklist WHERE blacklist."from" = $1
@@ -437,7 +437,7 @@ user.Name = "paolo"
 db.Select("username").Where(&user)
 ```
 
-generates:
+it generates:
 
 ```sql
 SELECT username FROM users WHERE users.counter = $1
@@ -451,7 +451,7 @@ If the primary key is blank every non empty field is and-end.
 user.Counter = 0 // 0 is a blank primary key
 ```
 
-generates
+it generates
 
 ```sql
 SELECT username FROM users WHERE users.name = $1
@@ -464,7 +464,7 @@ db.Model(User{}).Select("username").Where("counter IN (?) AND name ILIKE ?",[]ui
 
 ```
 
-generates:
+it generates:
 
 ```sql
 SELECT username FROM users WHERE counter in ($1,$2,$3,$4) AND name ILIKE $5
@@ -516,7 +516,7 @@ if e := tx.Create(&user); e != nil {
 ```
 
 ### Listen
-Listen executes `LISTEN channel`. Uses f to handle received notifications on chanel.
+Listen executes `LISTEN channel`. Uses f to handle received notifications on channel.
 
 ```go
 if e := db.Listen("notification_channel", func(payload ...string) {
@@ -532,7 +532,7 @@ if e := db.Listen("notification_channel", func(payload ...string) {
 ```
 
 ### Unlisten
-Unlisten executes`UNLISTEN channel`. Unregister function f, that was registered with Listen(chanenel ,f).
+Unlisten executes`UNLISTEN channel`. Unregister function f, that was registered with Listen(channel ,f).
 
 ```go
 e := db.Unlisten("notification_channel")
@@ -552,7 +552,7 @@ e = db.Notify("notification_channel") // empty payload
 e = db.Notify("notification_channel", "payload 1", "payload 2", "test")
 ```
 
-When seding a payload, the strings are joined together. Therfore the payload sent with previous call to `Notify` is: `payload 1, payload 2, test`
+When sending a payload, the strings are joined together. Therefore the payload sent with previous call to `Notify` is: `payload 1, payload 2, test`
 
 ## Differences
 
@@ -568,7 +568,7 @@ db.Select("username").Model(User{})
 
 and achieve the same result.
 
-In igor this is not possibile. You __must__ call `Model` before `Select`.
+In igor this is not possible. You __must__ call `Model` before `Select`.
 
 Thus always use: 
 
@@ -625,8 +625,9 @@ Privacy: you'll __never__ see the values of the variables, but only the prepared
 In GORM, every method (even the ones that execute queries) returns a `*DB`.
 
 In igor:
+
 - methods that execute queries returns `error`
-- methods that build the query returns `*Database`, thus you can chain the methods (a là GORM) and build the query.
+- methods that build the query returns `*Database`, thus you can chain the methods (GORM-like) and build the query.
 
 ### Scan and Find methods
 In GORM, `Scan` method is used to scan query results into a struct. The `Find` method is almost the same.
@@ -645,7 +646,7 @@ In igor:
 ### Scan
 In addiction to the previous section, there's another difference between GORM ad igor.
 
-`Scan` method __do not__ scans the selected fields into results using the selected fields name, but uses the order (to increse the performance).
+`Scan` method __do not__ scans the selected fields into results using the selected fields name, but uses the order (to increase the performance).
 
 Thus, having:
 ```go
@@ -671,7 +672,7 @@ query := "SELECT DISTINCT otherid, to_read, MAX(times) as time " +
 
 ```
 
-Scan will fail because it will try to Scan the boolaan value in second position `to_read`, into the `time.Time` field of the Conversation structure.
+Scan will fail because it will try to Scan the boolean value in second position `to_read`, into the `time.Time` field of the Conversation structure.
 
 
 ### Delete
@@ -718,7 +719,7 @@ db.First(&user, uint64(1))
 db.First(&user, "1") // panics, because "1" is not of the same type of user.Counter (uint64)
 ```
 
-generates:
+it generates:
 
 ```sql
 SELECT users.counter,users.last,users.notify_story,users.private,users.lang,users.username,users.email,users.name,users.surname,users.gender,users.birth_date,users.board_lang,users.timezone,users.viewonline,users.registration_time
@@ -773,7 +774,7 @@ PostgreSQL give us a beautiful method to avoid polling the DBMS, using a simple 
 
 Igor gives you the ability to generate notification and subscribe to notifications sent over a channel, using the methods `Listen` and `Notify`.
 
-Bevelow there's a working example:
+Below there's a working example:
 
 ```go
 count := 0
@@ -840,7 +841,7 @@ if e = db.UnlistenAll(); e != nil {
 ### Contributing
 Do you want to add some new method to improve GORM compatibility or add some new method to improve igor?
 
-Feel free to contribuite via Pull Request.
+Feel free to contribute via Pull Request.
 
 ### Testing
 To test igor, you must create a igor user on PostgreSQL and make it own the igor database.
@@ -858,7 +859,7 @@ go test
 ```
 
 ### License
-Copyright 2016-2020 Paolo Galeone. All right reserved.
+Copyright 2016-2022 Paolo Galeone. All right reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

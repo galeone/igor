@@ -1,5 +1,5 @@
 /*
-Copyright 2016-2020 Paolo Galeone. All right reserved.
+Copyright 2016-2022 Paolo Galeone. All right reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,24 +16,24 @@ limitations under the License.
 
 // Package igor is an abstraction layer for PostgreSQL with a gorm like syntax.
 //
-//You should use igor when your DBMS is PostgreSQL and you want to place an abstraction layer on top of it and do CRUD operations in a smart, easy, secure and fast way.
+// You should use igor when your DBMS is PostgreSQL and you want to place an abstraction layer on top of it and do CRUD operations in a smart, easy, secure and fast way.
 //
 // What igor does:
-//  - Always uses prepared statements: no sql injection and good performance.
-//  - Supports transactions
-//  - Uses a GORM like syntax
-//  - Uses the same logic in insertion and update: handle default values in a coherent manner
-//  - Uses GORM models and conventions (partially, see [Differences](#differences))
-//  - Exploits PostgreSQL `RETURNING` statement to update models fields with the updated values (even when changed on db side; e.g. when having a default value)
-//  - Automatically handle reserved keywords when used as a table name or fields. Does not quote every field (that's not recommended) but only the ones conflicting with a reserved keyword.
+//   - Always uses prepared statements: no sql injection and good performance.
+//   - Supports transactions
+//   - Uses a GORM like syntax
+//   - Uses the same logic in insertion and update: handle default values in a coherent manner
+//   - Uses GORM models and conventions (partially, see [Differences](#differences))
+//   - Exploits PostgreSQL `RETURNING` statement to update models fields with the updated values (even when changed on db side; e.g. when having a default value)
+//   - Automatically handle reserved keywords when used as a table name or fields. Does not quote every field (that's not recommended) but only the ones conflicting with a reserved keyword.
 //
-//What igor is not:
+// What igor is not:
 //
-//  - An ORM (and thus a complete GORM replacement):
-//    - Does not support associations
-//    - Does not support callbacks
-//    - Does not have any specific method for data migration and DDL operations
-//    - Does not support soft delete
+//   - An ORM (and thus a complete GORM replacement):
+//   - Does not support associations
+//   - Does not support callbacks
+//   - Does not have any specific method for data migration and DDL operations
+//   - Does not support soft delete
 package igor
 
 import (
@@ -45,6 +45,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+
 	// Blank import required to get PostgreSQL working
 	_ "github.com/lib/pq"
 )
