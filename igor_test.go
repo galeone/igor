@@ -17,8 +17,6 @@ package igor_test
 
 import (
 	"fmt"
-	"log"
-	"os"
 	"reflect"
 	"strconv"
 	"testing"
@@ -166,6 +164,9 @@ func init() {
 	if e = tx.Commit(); e != nil {
 		panic(e.Error())
 	}
+
+	//logger := log.New(os.Stdout, "igor-log: ", log.LUTC)
+	//db.Log(logger)
 }
 
 // createUser creates a test user (since the primary key is a bigserial, each call creates a new user)
@@ -195,7 +196,7 @@ func createProfile(id uint64) Profile {
 	return profile
 }
 
-func TestModelCreateUpdatesSelectDelete(t *testing.T) {
+func TestPanicWhenCallingOnEmptyModel(t *testing.T) {
 	panicNumber := 0
 	defer func() {
 		// catch panic of db.Model(nil)
@@ -211,7 +212,9 @@ func TestModelCreateUpdatesSelectDelete(t *testing.T) {
 
 	// must panic
 	db.Model(nil)
+}
 
+func TestModelCreateUpdatesSelectDelete(t *testing.T) {
 	if db.Create(&User{}) == nil {
 		t.Error("Create an user without assign a value to fileds that have no default should fail")
 	}
@@ -219,8 +222,18 @@ func TestModelCreateUpdatesSelectDelete(t *testing.T) {
 	user := createUser()
 	user.Profile = createProfile(user.Counter)
 
-	// Testing first
+	// First
 	var p Profile
+
+	if e = db.First(&p, uint64(99)); e == nil {
+		t.Errorf("Expected First to return an error when there are no rows to fetch, but succeded: %v", p)
+	}
+
+	zeroValue := Profile{}
+	if !reflect.DeepEqual(p, zeroValue) {
+		t.Errorf("After a failed First, the input parameter should remain unchanged, but are different. Got %v expected %v", p, zeroValue)
+	}
+
 	if e = db.First(&p, user.Counter); e != nil {
 		t.Errorf("First failed: %s\n", e.Error())
 	}
@@ -230,10 +243,10 @@ func TestModelCreateUpdatesSelectDelete(t *testing.T) {
 	}
 
 	if user.Lang != "en" {
-		t.Error("Auto update of struct fields having default values on the DBMS shoud work, but failed")
+		t.Errorf("Auto update of struct fields having default values on the DBMS shoud work, but failed. Expected lang=en got %s", user.Lang)
 	}
 
-	//change user language
+	// change user language
 	user.Lang = "it"
 	if e = db.Updates(&user); e != nil {
 		t.Errorf("Updates should work but got: %s\n", e.Error())
@@ -258,21 +271,19 @@ func TestModelCreateUpdatesSelectDelete(t *testing.T) {
 		t.Errorf("Delete of a user (using the primary key) shoudl work, but got: %s\n", e.Error())
 	}
 
-	// Now use is empty. Thus a new .Delete(&user) should fail
+	// Now user is empty. Thus a new .Delete(&user) should fail
 	if e = db.Delete(&user); e == nil {
 		t.Error("Delete of an empty object should fail, but succeeded")
 	}
 }
 
 func TestJoinsTableSelectDeleteWhere(t *testing.T) {
-	logger := log.New(os.Stdout, "igor-log: ", log.LUTC)
-	db.Log(logger)
-
 	// create 6 user and profiles
 	var ids []uint64
 	for i := 0; i < 6; i++ {
-		ids = append(ids, createUser().Counter)
-		createProfile(uint64(i + 1))
+		user := createUser()
+		ids = append(ids, user.Counter)
+		createProfile(user.Counter)
 	}
 
 	var fetchedIds []uint64
@@ -372,8 +383,6 @@ func TestJSON(t *testing.T) {
 }
 
 func TestNotifications(t *testing.T) {
-	logger := log.New(os.Stdout, "igor-log: ", log.LUTC)
-	db.Log(logger)
 	count := 0
 	if e = db.Listen("notification_without_payload", func(payload ...string) {
 		count++
@@ -435,7 +444,6 @@ func TestNotifications(t *testing.T) {
 }
 
 func TestCTE(t *testing.T) {
-	//db.Log(nil)
 	createUser()
 	createUser()
 	createUser()

@@ -128,22 +128,38 @@ func (db *Database) Delete(value DBModel) error {
 	// If where is empty, try to infer a primary key by value
 	// otherwise buildDelete panics (where is mandatory)
 	db = db.Where(value)
+	var deleteQuery *string
+	var err error
+	if deleteQuery, err = db.buildDelete(); err != nil {
+		return err
+	}
 
 	// Compile query
 	var stmt *sql.Stmt
-	var err error
-	if stmt, err = db.db.Prepare(db.buildDelete()); err != nil {
+	if stmt, err = db.db.Prepare(*deleteQuery); err != nil {
 		return err
 	}
 	defer stmt.Close()
 
 	// Pass query parameters and executes the query
-	if _, err = stmt.Exec(db.whereValues...); err != nil {
+	var r sql.Result
+	if r, err = stmt.Exec(db.whereValues...); err != nil {
 		return err
 	}
 
+	var count int64
+	if count, err = r.RowsAffected(); err != nil {
+		return nil
+	}
+	if count == 0 {
+		return errors.New("No rows have been deleted. Check that the passed value exists")
+	}
+
 	// Clear fields of value after delete, because the object no more exists
-	value = reflect.Zero(reflect.ValueOf(value).Type()).Interface().(DBModel)
+	if reflect.TypeOf(value).Kind() == reflect.Pointer {
+		val := reflect.ValueOf(value).Elem()
+		val.Set(reflect.Zero(val.Type()))
+	}
 
 	return nil
 }
@@ -203,9 +219,26 @@ func (db *Database) Count(value *uint8) error {
 // Panics if key is not compatible with the primary key filed type or if the query formulation fails
 func (db *Database) First(dest DBModel, key interface{}) error {
 	modelKey, _ := primaryKey(dest)
-	in := reflect.Indirect(reflect.ValueOf(dest))
-	in.FieldByName(modelKey).Set(reflect.Indirect(reflect.ValueOf(key)))
-	return db.Model(dest).Where(in.Interface()).Scan(dest)
+	// Create a copy of dest, in order to do not set any field (the primary key)
+	// in case of empty results from Scan
+	destIndirect := reflect.Indirect(reflect.ValueOf(dest))
+
+	destCopy := reflect.New(destIndirect.Type()).Elem()
+	destCopy.Set(destIndirect)
+
+	destCopy.FieldByName(modelKey).Set(reflect.Indirect(reflect.ValueOf(key)))
+
+	if err := db.Model(dest).Where(destCopy.Interface()).Scan(dest); err != nil {
+		return err
+	}
+
+	// If dest it's not updated (changed), then there were no rows fetched. Thus return
+	// an error since one that uses First (with a primary key) expects to get a value
+	empty := reflect.New(destIndirect.Type()).Elem()
+	if reflect.DeepEqual(destIndirect.Interface(), empty.Interface()) {
+		return errors.New("No rows fetched with First, given the specified key")
+	}
+	return nil
 }
 
 // Scan build the SELECT query and scans the query result query into dest.

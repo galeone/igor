@@ -19,6 +19,7 @@ package igor
 import (
 	"bytes"
 	"database/sql"
+	"errors"
 	"fmt"
 	"reflect"
 	"sort"
@@ -568,21 +569,22 @@ func (db *Database) buildCTE() string {
 	return db.cte + " "
 }
 
-// buildDelete returns the generated SQL for the DELETE statement. Panics if it can't geerate a query
-func (db *Database) buildDelete() string {
+// buildDelete returns the generated SQL for the DELETE statement.
+// It returns error if it's impossible to create the delete query for some reason.
+func (db *Database) buildDelete() (*string, error) {
 	var query bytes.Buffer
 	query.WriteString(db.buildCTE())
 	query.WriteString("DELETE FROM ")
 
 	// Model only
 	if len(db.tables) != 1 {
-		db.panicLog("Unable to infer table name for Delete. Use Delete(model) or Model(model)")
+		return nil, errors.New("Unable to infer table name for Delete. Use Delete(model) or Model(model)")
 	}
 	query.WriteString(db.tables[0])
 
 	// Where (mandatory)
 	if len(db.whereFields) == 0 {
-		db.panicLog("Where statement is mandatory in Delete")
+		return nil, errors.New("Where statement is mandatory in Delete")
 	}
 
 	query.WriteString(db.buildWhere())
@@ -590,7 +592,7 @@ func (db *Database) buildDelete() string {
 
 	qs := query.String()
 	db.printLog(qs)
-	return qs
+	return &qs, nil
 }
 
 // buildWhere returns the generated SQL for the WHERE clause. Panics if the Where method hasn't been called
@@ -658,7 +660,7 @@ func fieldValue(fieldVal reflect.Value, structField reflect.StructField) (ret in
 					return boolValue
 				}
 			case reflect.String:
-				return fieldVal.String()
+				return defaultValue
 			default:
 				return nil
 			}
