@@ -10,20 +10,29 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        # Docker Hub image
+        image: postgres:14.5
+        # Provide the password for postgres
+        env:
+          POSTGRES_USER: igor
+          POSTGRES_PASSWORD: igor
+          POSTGRES_DB: igor
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v3
       - name: Setup Go environment
         uses: actions/setup-go@v3
         with:
           go-version-file: 'go.mod'
-      - name: Setup Postgres database
-        uses: Daniel-Marynicz/postgresql-action@master
-        with:
-          postgres_image_tag: "14.5"
-      - name: configure
-        run: |
-          psql -c 'CREATE ROLE igor LOGIN;' -U postgres
-          psql -c 'CREATE DATABASE igor OWNER igor;' -U postgres
       - name: build
         run: go build -v ./...
       - name: test
