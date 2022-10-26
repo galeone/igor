@@ -20,7 +20,6 @@ jobs:
         app_user: igor
         app_user_password: igor
         app_db: igor
-
     - name: Setup Go environment
       uses: actions/setup-go@v3
       with:
