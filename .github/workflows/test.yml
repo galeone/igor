@@ -20,9 +20,10 @@ jobs:
         uses: Daniel-Marynicz/postgresql-action@master
         with:
           postgres_image_tag: "14.5"
-          app_user: igor
-          app_user_password: igor
-          app_db: igor
+      - name: configure
+        run: |
+          psql -c 'CREATE ROLE igor LOGIN;' -U postgres
+          psql -c 'CREATE DATABASE igor OWNER igor;' -U postgres
       - name: build
         run: go build -v ./...
       - name: test
