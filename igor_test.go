@@ -97,7 +97,7 @@ func init() {
 		host = "localhost"
 	}
 
-	if db, e = igor.Connect(fmt.Sprintf("host=%s user=igor dbname=igor sslmode=disable", host)); e != nil {
+	if db, e = igor.Connect(fmt.Sprintf("host=%s port=5432 user=igor dbname=igor sslmode=disable connect_timeout=10", host)); e != nil {
 		panic(e.Error())
 	}
 
