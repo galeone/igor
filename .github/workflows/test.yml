@@ -23,4 +23,7 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version-file: 'go.mod'
-        run: go test
+      - name: build
+        run: go test -v ./...
+      - name: test
+        run: go test -v ./...
