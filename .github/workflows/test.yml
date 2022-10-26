@@ -36,4 +36,8 @@ jobs:
       - name: build
         run: go build -v ./...
       - name: test
+        env:
+          # postgres is the service defined above
+          # that has its own IP (like docker-compose)
+          POSTGRES_HOST: postgres
         run: go test -v ./...
