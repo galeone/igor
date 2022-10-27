@@ -41,5 +41,5 @@ jobs:
         env:
           # postgres is the service defined above
           # that has its own IP (like docker-compose)
-          POSTGRES_HOST: postgres
+          POSTGRES_HOST: localhost
         run: go test -v ./...
