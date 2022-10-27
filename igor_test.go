@@ -17,7 +17,6 @@ package igor_test
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"strconv"
 	"testing"
@@ -92,12 +91,7 @@ func init() {
 		panic("Connect with a wrong connection string shoudl fail, but succeeded")
 	}
 
-	host := os.Getenv("POSTGRES_HOST")
-	if host == "" {
-		host = "localhost"
-	}
-
-	if db, e = igor.Connect(fmt.Sprintf("host=%s port=5432 user=igor dbname=igor sslmode=disable connect_timeout=10", host)); e != nil {
+	if db, e = igor.Connect("host=localhost port=5432 user=igor dbname=igor password=igor sslmode=disable connect_timeout=10"); e != nil {
 		panic(e.Error())
 	}
 
