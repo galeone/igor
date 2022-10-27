@@ -1,0 +1,45 @@
+name: Setup PostgreSQL and test igor
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  test:
+    services:
+      postgres:
+        # Docker Hub image
+        image: postgres:14.5
+        # Provide the password for postgres
+        env:
+          POSTGRES_PASSWORD: pass
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Go environment
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
+      - name: build
+        run: go build -v ./...
+      - name: test
+        env:
+          POSTGRES_HOST: localhost
+        run: |
+          export PGPASSWORD=pass
+          psql -h localhost -p 5432 -c "CREATE ROLE igor WITH LOGIN PASSWORD 'igor';" -U postgres
+          psql -h localhost -p 5432 -c 'CREATE DATABASE igor OWNER igor;' -U postgres
+          go test -v ./...

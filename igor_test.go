@@ -91,7 +91,7 @@ func init() {
 		panic("Connect with a wrong connection string shoudl fail, but succeeded")
 	}
 
-	if db, e = igor.Connect("user=igor dbname=igor sslmode=disable"); e != nil {
+	if db, e = igor.Connect("host=localhost port=5432 user=igor dbname=igor password=igor sslmode=disable connect_timeout=10"); e != nil {
 		panic(e.Error())
 	}
 
