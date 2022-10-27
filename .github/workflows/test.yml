@@ -39,6 +39,7 @@ jobs:
         env:
           POSTGRES_HOST: localhost
         run: |
+          export PGPASSWORD="$POSTGRES_PASSWORD"
           psql -h localhost -p 5432 -c 'CREATE ROLE igor LOGIN;' -U postgres
           psql -h localhost -p 5432 -c 'CREATE DATABASE igor OWNER igor;' -U postgres
           psql go test -v ./...
