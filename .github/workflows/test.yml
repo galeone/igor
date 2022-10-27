@@ -15,9 +15,7 @@ jobs:
         image: postgres:14.5
         # Provide the password for postgres
         env:
-          POSTGRES_USER: igor
-          POSTGRES_PASSWORD: igor
-          POSTGRES_DB: igor
+          POSTGRES_PASSWORD: pass
         # Set health checks to wait until postgres has started
         options: >-
           --health-cmd pg_isready
@@ -39,7 +37,8 @@ jobs:
         run: go build -v ./...
       - name: test
         env:
-          # postgres is the service defined above
-          # that has its own IP (like docker-compose)
           POSTGRES_HOST: localhost
-        run: go test -v ./...
+        run: |
+          psql -c 'CREATE ROLE igor LOGIN;' -U postgres
+          sql -c 'CREATE DATABASE igor OWNER igor;' -U postgres
+          psql go test -v ./...
