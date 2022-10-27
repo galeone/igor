@@ -9,8 +9,6 @@ on:
 jobs:
 
   test:
-    runs-on: ubuntu-latest
-
     services:
       postgres:
         # Docker Hub image
@@ -26,7 +24,11 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
 
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Setup Go environment
