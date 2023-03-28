@@ -126,12 +126,11 @@ func init() {
 		panic(e.Error())
 	}
 
-	e = tx.Exec("DROP TABLE IF EXISTS profiles CASCADE")
-	if e != nil {
-		panic(e.Error())
-	}
+	// Exec can work with multiple statements if there are not parameters
+	// and thus we are not using prepared statements.
+	e = tx.Exec(`DROP TABLE IF EXISTS profiles CASCADE;
 
-	e = tx.Exec(`CREATE TABLE profiles (
+	CREATE TABLE profiles (
     counter bigserial NOT NULL PRIMARY KEY,
     website character varying(350) DEFAULT ''::character varying NOT NULL,
     quotes text DEFAULT ''::text NOT NULL,

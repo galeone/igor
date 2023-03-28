@@ -426,6 +426,17 @@ tx.Exec(`CREATE TABLE users (
 tx.Commit()
 ```
 
+`Exec` does not use prepared statements if there are no paremeters to replace in the query. This make it possible to use a single call to `Exec` to execute multiple statements `;`-terminated. e.g.
+
+```go
+tx.Exec(`DROP TABLE IF EXISTS users;
+        CREATE TABLE users (
+        counter bigint NOT NULL,
+        ...
+    )`)
+tx.Commit()
+```
+
 ### Where
 Where builds the WHERE clause.
 
@@ -850,6 +861,7 @@ On Archlinux, with `postgres` as the PostgreSQL superuser this can be achieved b
 ```sh
 createuser -U postgres igor
 createdb -U postgres igor igor
+psql -U postgres -d igor -c "GRANT USAGE, CREATE ON SCHEMA public TO igor;"
 ```
 
 You can run tests with the usual command:

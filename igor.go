@@ -359,9 +359,13 @@ func (db *Database) Scan(dest ...interface{}) error {
 // Use Exec instead of Raw when you don't need the results (or there's no result)
 func (db *Database) Exec(query string, args ...interface{}) error {
 	defer db.clear()
-	stmt := db.commonRawQuery(query, args...)
-	defer stmt.Close()
-	_, e := stmt.Exec(db.whereValues...)
+	if len(args) > 0 {
+		stmt := db.commonRawQuery(query, args...)
+		defer stmt.Close()
+		_, e := stmt.Exec(db.whereValues...)
+		return e
+	}
+	_, e := db.db.Exec(query)
 	return e
 }
 
