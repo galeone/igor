@@ -152,7 +152,7 @@ func (db *Database) Delete(value DBModel) error {
 		return nil
 	}
 	if count == 0 {
-		return errors.New("No rows have been deleted. Check that the passed value exists")
+		return errors.New("no rows have been deleted. Check that the passed value exists")
 	}
 
 	// Clear fields of value after delete, because the object no more exists
@@ -236,7 +236,7 @@ func (db *Database) First(dest DBModel, key interface{}) error {
 	// an error since one that uses First (with a primary key) expects to get a value
 	empty := reflect.New(destIndirect.Type()).Elem()
 	if reflect.DeepEqual(destIndirect.Interface(), empty.Interface()) {
-		return errors.New("No rows fetched with First, given the specified key")
+		return errors.New("no rows fetched with First, given the specified key")
 	}
 	return nil
 }
@@ -247,7 +247,7 @@ func (db *Database) Scan(dest ...interface{}) error {
 	defer db.clear()
 	ld := len(dest)
 	if ld == 0 {
-		return errors.New("Required at least one parameter to Scan method")
+		return errors.New("required at least one parameter to Scan method")
 	}
 
 	var err error
@@ -269,7 +269,7 @@ func (db *Database) Scan(dest ...interface{}) error {
 					// hanlde slice of structs and slice of pointers to struct
 					sliceType := destIndirect.Type().Elem()
 					if sliceType.Kind() == reflect.Ptr {
-						return errors.New("Do not use a slice of pointers. Use a slice of real values. E.g. use []int instead of []*int")
+						return errors.New("do not use a slice of pointers. Use a slice of real values. E.g. use []int instead of []*int")
 					}
 					if sliceType.Kind() == reflect.Struct {
 						db.selectFields = strings.Join(getSQLFields(reflect.Indirect(reflect.New(sliceType)).Interface().(DBModel)), ",")
@@ -321,7 +321,8 @@ func (db *Database) Scan(dest ...interface{}) error {
 		// if defaultElem is a struct, extract its fields, pass it to scan (extracts the address)
 		var interfaces []interface{}
 		if defaultElem.Kind() == reflect.Struct {
-			fields := getFields(defaultElem.Interface())
+			fields := []reflect.StructField{}
+			getFields(defaultElem.Interface(), &fields)
 			for _, field := range fields {
 				interfaces = append(interfaces, reflect.Indirect(defaultElem.FieldByName(field.Name)).Addr().Interface())
 			}
@@ -463,7 +464,8 @@ func (db *Database) Where(s interface{}, args ...interface{}) *Database {
 			db.whereValues = append(db.whereValues, value)
 		} else {
 			// handle embedded anonymous struct
-			fields := getFields(s)
+			fields := []reflect.StructField{}
+			getFields(s, &fields)
 			for _, fieldType := range fields {
 				fieldValue := in.FieldByName(fieldType.Name)
 				if !isBlank(fieldValue) {

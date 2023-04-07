@@ -31,7 +31,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// Reserved keyworkds that shouldn't be used as column name or other identifiers
+// Reserved keywords that shouldn't be used as column name or other identifiers
 // result of: select '"' || word::text || '",' from pg_get_keywords() where catcode = 'R' OR catdesc like '%cannot%';
 // We will check if the current identifier is in that list. If it is, it will be placed between quotes
 var reservedKeywords = []string{
@@ -199,9 +199,9 @@ func (db *Database) panicLog(v interface{}) {
 	}
 }
 
-// handleIdentifier handle db idetifiers that are reserved
-// It puts reserved keywords used as column/table name betweeen double quotes and
-// rename clause into a valid database identifier, following the coventions
+// handleIdentifier handle db identifiers that are reserved
+// It puts reserved keywords used as column/table name between double quotes and
+// rename clause into a valid database identifier, following the conventions
 func handleIdentifier(clause string) string {
 	lowerClause := strings.ToLower(clause)
 	i := sort.SearchStrings(reservedKeywords, lowerClause)
@@ -229,7 +229,7 @@ func (db *Database) commonRawQuery(query string, args ...interface{}) *sql.Stmt 
 	return stmt
 }
 
-// commonCreateUpdate executs common operation in preparation of create / update statements
+// commonCreateUpdate executes common operation in preparation of create / update statements
 // because the logic is the same.
 // builder is the function that build the UPDATE or CREATE query
 func (db *Database) commonCreateUpdate(value DBModel, builder func() string) error {
@@ -242,7 +242,8 @@ func (db *Database) commonCreateUpdate(value DBModel, builder func() string) err
 
 	in := getStruct(value)
 	// getFields handle anonymous nested fields
-	fields := getFields(value)
+	fields := []reflect.StructField{}
+	getFields(value, &fields)
 
 	for _, structField := range fields {
 		field := in.FieldByName(structField.Name)
@@ -319,7 +320,7 @@ func primaryKey(s interface{}) (key string, value interface{}) {
 	return
 }
 
-// namingConvention returns the coversion of input name to a
+// namingConvention returns the conversion of input name to a
 // valid db entity that follows the convention
 func namingConvention(name string) string {
 	// first char is always upper case
@@ -355,7 +356,8 @@ func getColumnName(field reflect.StructField) (fieldName string) {
 // getSQLFields returns sql-compatible fields that the select query should return
 // skips sql:"-".
 func getSQLFields(s DBModel) (ret []string) {
-	fields := getFields(s)
+	fields := []reflect.StructField{}
+	getFields(s, &fields)
 	table := handleIdentifier(s.TableName())
 	for _, field := range fields {
 		ret = append(ret, table+"."+getColumnName(field))
@@ -364,30 +366,62 @@ func getSQLFields(s DBModel) (ret []string) {
 }
 
 // getFields returns a slice of reflect.StructField that represents the exported struct Fields in s
-// that are not excluded in sql generation
-func getFields(s interface{}) (ret []reflect.StructField) {
+// that are not excluded in sql generation.
+// toKeep is a pointer to a slice, because we call this function recursively on nested structs
+// and we must collect the values in the very same slice.
+func getFields(s interface{}, toKeep *[]reflect.StructField) {
+	// Use a map to count how many times we find the same field
+	// Usually it's only 1, but it may happen that a struct is embedding
+	// another struct with the same field name (and type) and different tag
+	// In this case, we need to take care of considering the tags.
+	// e.g.
+	// struct A { x int64 }
+	// struct B { A, x int64 `sql:"-"`}
+	// In this case, we want `x` to be excluded from the SQL generation.
+
+	isInSlice := func(value reflect.StructField, slice []reflect.StructField) int {
+		for idx, v := range slice {
+			if v.Name == value.Name {
+				return idx
+			}
+		}
+		return -1
+	}
+
 	val := reflect.Indirect(reflect.ValueOf(s))
-	// addIf adds filedType to ret if is not marked as `sql:"-"`
+	// addIf adds filedType to toKeep if is not marked as `sql:"-"`
 	addIf := func(fieldType reflect.StructField) {
 		tag := strings.ToLower(fieldType.Tag.Get("sql"))
 		tagValue := strings.Split(tag, ",")
 		sort.Strings(tagValue)
-		idx := sort.SearchStrings(tagValue, "-")
-		if idx == len(tagValue) || tagValue[idx] != "-" {
-			ret = append(ret, fieldType)
+		if key := isInSlice(fieldType, *toKeep); key != -1 {
+			// If already seen and not ignored, check if the _current tag_
+			// is an ignore tag. In that case, let's remove from toKeep
+			idx := sort.SearchStrings(tagValue, "-")
+			if idx != len(tagValue) && tagValue[idx] == "-" {
+				copy((*toKeep)[key:], (*toKeep)[key+1:])
+				*toKeep = (*toKeep)[:len(*toKeep)-1]
+			}
+		} else {
+			// Never seen and not ignored: to keep
+			idx := sort.SearchStrings(tagValue, "-")
+			if idx == len(tagValue) || tagValue[idx] != "-" {
+				*toKeep = append(*toKeep, fieldType)
+			}
 		}
 	}
+
 	for i := 0; i < val.NumField(); i++ {
 		fieldValue := val.Field(i)
 		fieldType := val.Type().Field(i)
 		// if it's exported
 		if fieldType.PkgPath == "" {
-			// Handle embedded anoymous struct
+			// Handle embedded anonymous struct
 			switch fieldValue.Kind() {
 			case reflect.Struct:
 				// if it's anonymous, embed its fields in the query
 				if fieldType.Anonymous {
-					ret = append(ret, getFields(fieldValue.Interface())...)
+					getFields(fieldValue.Interface(), toKeep)
 				} else { // use its name only (to work with structs like time.Time)
 					addIf(fieldType)
 				}
@@ -396,8 +430,6 @@ func getFields(s interface{}) (ret []reflect.StructField) {
 			}
 		}
 	}
-
-	return
 }
 
 // isBlank returns true if value is empty
@@ -409,7 +441,7 @@ func isBlank(value reflect.Value) bool {
 func getStruct(s interface{}) reflect.Value {
 	in := reflect.Indirect(reflect.ValueOf(s))
 	if in.Kind() != reflect.Struct {
-		panic(fmt.Sprintf("s must be a sturct, not %s\n", in.Kind()))
+		panic(fmt.Sprintf("s must be a struct, not %s\n", in.Kind()))
 	}
 	return in
 }
@@ -529,7 +561,7 @@ func (db *Database) buildCreate() string {
 	// field1,file2,...
 	createSize := len(db.updateCreateFields)
 	if createSize == 0 {
-		db.panicLog("Unable to detect fields for Create")
+		db.panicLog("Unable to detect fields for Create. Ensure that you're passing values for all the fiels that have no default value. e.g. sql:'default:something'")
 	}
 
 	query.WriteString(strings.Join(db.updateCreateFields, ","))
@@ -578,7 +610,7 @@ func (db *Database) buildDelete() (*string, error) {
 
 	// Model only
 	if len(db.tables) != 1 {
-		return nil, errors.New("Unable to infer table name for Delete. Use Delete(model) or Model(model)")
+		return nil, errors.New("unable to infer table name for Delete. Use Delete(model) or Model(model)")
 	}
 	query.WriteString(db.tables[0])
 
@@ -624,8 +656,8 @@ func (db *Database) buildWhere() string {
 }
 
 // fieldValue returns an interface{} that's the value of fieldVal if fieldVal is not blank
-// if fieldVal is blank and the field has a default value, return the defalt value
-// oherwise returns nil
+// if fieldVal is blank and the field has a default value, return the default value
+// otherwise returns nil
 func fieldValue(fieldVal reflect.Value, structField reflect.StructField) (ret interface{}) {
 	if isBlank(fieldVal) {
 		defaultValue := strings.TrimSpace(parseTagSetting(structField.Tag.Get("sql"))["default"])

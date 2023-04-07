@@ -17,6 +17,8 @@ package igor_test
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"reflect"
 	"strconv"
 	"testing"
@@ -85,10 +87,24 @@ func (User) TableName() string {
 	return "users"
 }
 
+type NestMe struct {
+	ID          int64 `igor:"primary_key"`
+	OverwriteMe int64
+}
+
+type NestTable struct {
+	NestMe
+	OverwriteMe int64 `sql:"-"`
+}
+
+func (NestTable) TableName() string {
+	return "nest_table"
+}
+
 func init() {
 
 	if db, e = igor.Connect("user=donotexists dbname=wat sslmode=error"); e == nil {
-		panic("Connect with a wrong connection string shoudl fail, but succeeded")
+		panic("Connect with a wrong connection string should fail, but succeeded")
 	}
 
 	if db, e = igor.Connect("host=localhost port=5432 user=igor dbname=igor password=igor sslmode=disable connect_timeout=10"); e != nil {
@@ -102,6 +118,10 @@ func init() {
 		panic(e.Error())
 	}
 
+	e = tx.Exec("DROP TABLE IF EXISTS nest_table CASCADE")
+	if e != nil {
+		panic(e.Error())
+	}
 	e = tx.Exec(`CREATE TABLE users (
     counter bigserial NOT NULL PRIMARY KEY,
     last timestamp without time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -160,12 +180,17 @@ func init() {
 		panic(e.Error())
 	}
 
+	e = tx.Exec("CREATE TABLE nest_table(id bigserial not null PRIMARY KEY)")
+	if e != nil {
+		panic(e.Error())
+	}
+
 	if e = tx.Commit(); e != nil {
 		panic(e.Error())
 	}
 
-	//logger := log.New(os.Stdout, "igor-log: ", log.LUTC)
-	//db.Log(logger)
+	logger := log.New(os.Stdout, "igor-log: ", log.LUTC)
+	db.Log(logger)
 }
 
 // createUser creates a test user (since the primary key is a bigserial, each call creates a new user)
@@ -181,7 +206,7 @@ func createUser() User {
 	}
 
 	if e = db.Create(&user); e != nil {
-		panic(fmt.Sprintf("Create(&user) filling fields having no default shoud work, but got: %s\n", e.Error()))
+		panic(fmt.Sprintf("Create(&user) filling fields having no default should work, but got: %s\n", e.Error()))
 	}
 	return user
 }
@@ -213,9 +238,17 @@ func TestPanicWhenCallingOnEmptyModel(t *testing.T) {
 	db.Model(nil)
 }
 
+func TestCreateWithNestedStruct(t *testing.T) {
+	row := NestTable{}
+	row.ID = 1
+	if e = db.Create(&row); e != nil {
+		t.Errorf("Inserting a new row with a type that uses a nested struct should be possible. But got %v", e)
+	}
+}
+
 func TestModelCreateUpdatesSelectDelete(t *testing.T) {
 	if db.Create(&User{}) == nil {
-		t.Error("Create an user without assign a value to fileds that have no default should fail")
+		t.Error("Create an user without assign a value to fields that have no default should fail")
 	}
 
 	user := createUser()
@@ -225,7 +258,7 @@ func TestModelCreateUpdatesSelectDelete(t *testing.T) {
 	var p Profile
 
 	if e = db.First(&p, uint64(99)); e == nil {
-		t.Errorf("Expected First to return an error when there are no rows to fetch, but succeded: %v", p)
+		t.Errorf("Expected First to return an error when there are no rows to fetch, but succeeded: %v", p)
 	}
 
 	zeroValue := Profile{}
@@ -242,7 +275,7 @@ func TestModelCreateUpdatesSelectDelete(t *testing.T) {
 	}
 
 	if user.Lang != "en" {
-		t.Errorf("Auto update of struct fields having default values on the DBMS shoud work, but failed. Expected lang=en got %s", user.Lang)
+		t.Errorf("Auto update of struct fields having default values on the DBMS should work, but failed. Expected lang=en got %s", user.Lang)
 	}
 
 	// change user language
@@ -267,7 +300,7 @@ func TestModelCreateUpdatesSelectDelete(t *testing.T) {
 	}
 
 	if e = db.Delete(&user); e != nil {
-		t.Errorf("Delete of a user (using the primary key) shoudl work, but got: %s\n", e.Error())
+		t.Errorf("Delete of a user (using the primary key) should work, but got: %s\n", e.Error())
 	}
 
 	// Now user is empty. Thus a new .Delete(&user) should fail
@@ -320,7 +353,7 @@ func TestJoinsTableSelectDeleteWhere(t *testing.T) {
 	}
 
 	if count != 6 {
-		t.Errorf("Problem wiht count. Expeted 6 users but counted %d", count)
+		t.Errorf("Problem with count. Expected 6 users but counted %d", count)
 	}
 
 	if e = db.Where("counter IN (?)", ids).Delete(User{}); e != nil {

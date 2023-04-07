@@ -40,7 +40,7 @@ func (db *Database) Listen(channel string, f func(payload ...string)) error {
 		db.listener = pq.NewListener(db.connectionString, 10*time.Second, time.Minute, reportProblem)
 
 		if db.listener == nil {
-			return errors.New("Unable to create a new listener")
+			return errors.New("unable to create a new listener")
 		}
 
 		// detach event handler
@@ -77,7 +77,7 @@ func (db *Database) Listen(channel string, f func(payload ...string)) error {
 // Unlisten executes `UNLISTEN channel`. Unregister function f, that was registered with Listen(channel ,f).
 func (db *Database) Unlisten(channel string) error {
 	if db.listener == nil {
-		return errors.New("You must create a new listener first, calling Listen(channel)")
+		return errors.New("you must create a new listener first, calling Listen(channel)")
 	}
 
 	if channel == "*" {

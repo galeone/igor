@@ -40,7 +40,7 @@ func (js *JSON) Scan(src interface{}) error {
 	}
 	source, ok := src.([]byte)
 	if !ok {
-		return errors.New("Type assertion .([]byte) failed.")
+		return errors.New("type assertion .([]byte) failed")
 	}
 
 	if err := json.Unmarshal(source, js); err != nil {
