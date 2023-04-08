@@ -65,36 +65,109 @@ type (User) TableName() string {
 }
 ```
 
+### Array support
+
+igor supports PostgreSQL fields natively, without the need to use the `pg.Array` type - you can use just plain structs.
+
+```go
+type NestMe struct {
+	ID            int64 `igor:"primary_key"`
+	SliceOfString []string
+	SliceOfInt64  []int64
+}
+```
+
+This structure maps this table definition:
+
+```sql
+CREATE TABLE nest_table(
+    id bigserial not null PRIMARY KEY,
+    slice_of_string text[] not null,
+    slice_of_int64 bigint[] not null
+)
+```
+
+### Nested types support
+
+igor allows you to embed types, and overwrite fields of the inner type. In particular, you can add the `sql` decorator (or change type, potentially).
+
+
+```go
+type NestMe struct {
+	ID            int64 `igor:"primary_key"`
+	OverwriteMe   int64
+	SliceOfString []string
+	SliceOfInt64  []int64
+}
+
+type NestTable struct {
+	NestMe
+	OverwriteMe int64 `sql:"-"`
+}
+func (NestTable) TableName() string {
+	return "nest_table"
+}
+```
+
+The `NestTable` type disables the SQL generation for the field `OverwriteMe` that's present in the embedded type `NestMe`.
+
 ## Methods
-- [Connect](#connect)
-- [Log](#log)
-- [Model](#model)
-- [Joins](#joins)
-- [Table](#table)
-- [CTE](#cte)
-- [Select](#select)
-- [Where](#where)
-- [Create](#create)
-- [Delete](#delete)
-- [Updates](#updates)
-- [Pluck](#pluck)
-- [Count](#count)
-- [First](#first)
-- [Scan](#scan)
-- [Raw](#raw)
-- [Exec](#exec)
-- [Where](#where)
-- [Limit](#limit)
-- [Offset](#offset)
-- [Order](#order)
-- [DB](#db)
-- [Begin](#begin)
-- [Commit](#commit)
-- [Rollback](#rollback)
-- [Listen](#listen)
-- [Unlisten](#unlisten)
-- [UnlistenAll](#unlistenall)
-- [Notify](#notify)
+- [igor](#igor)
+  - [When to use igor](#when-to-use-igor)
+  - [What igor does](#what-igor-does)
+  - [What igor is not](#what-igor-is-not)
+  - [Install](#install)
+  - [GORM compatible](#gorm-compatible)
+  - [Model definition](#model-definition)
+    - [Array support](#array-support)
+    - [Nested types support](#nested-types-support)
+  - [Methods](#methods)
+    - [Connect](#connect)
+    - [Log](#log)
+    - [Model](#model)
+    - [Joins](#joins)
+    - [Table](#table)
+    - [CTE](#cte)
+    - [Select](#select)
+    - [Where](#where)
+    - [Create](#create)
+    - [Delete](#delete)
+    - [Updates](#updates)
+    - [Pluck](#pluck)
+    - [Count](#count)
+    - [First](#first)
+    - [Scan](#scan)
+    - [Raw](#raw)
+    - [Exec](#exec)
+    - [Where](#where-1)
+    - [Limit](#limit)
+    - [Offset](#offset)
+    - [Order](#order)
+    - [DB](#db)
+    - [Begin](#begin)
+    - [Commit](#commit)
+    - [Rollback](#rollback)
+    - [Listen](#listen)
+    - [Unlisten](#unlisten)
+    - [UnlistenAll](#unlistenall)
+    - [Notify](#notify)
+  - [Differences](#differences)
+    - [Select and Where call order](#select-and-where-call-order)
+    - [Models](#models)
+    - [Open method](#open-method)
+    - [Logger](#logger)
+    - [Methods return value](#methods-return-value)
+    - [Scan and Find methods](#scan-and-find-methods)
+    - [Scan](#scan-1)
+    - [Delete](#delete-1)
+    - [First](#first-1)
+  - [Other](#other)
+    - [JSON and JSONB support](#json-and-jsonb-support)
+    - [LISTEN / NOTIFY support](#listen--notify-support)
+    - [Contributing](#contributing)
+    - [Testing](#testing)
+    - [License](#license)
+    - [About the author](#about-the-author)
 
 ### Connect
 ```go
@@ -263,7 +336,7 @@ FROM posts
 WHERE "to" = $1
 ```
 
-Wheere supports slices as well:
+Where supports slices as well:
 
 ```go
 db.Model(UserPost{}).Where(`"to" IN (?) OR "from" = ?`, []uint64{1,2,3,4,6}, 88)
@@ -284,7 +357,7 @@ Create `INSERT` a new row into the table specified by the DBModel.
 
 If a field is blank and has a default value and this default value is the Go Zero value for that field, igor does not generate the query part associated with the insertion of that fields (let the DBMS handle the default value generation).
 
-If a field is blank and has a default value that's different from the Go Zero value for fhat filed, insert the specified default value.
+If a field is blank and has a default value that's different from the Go Zero value for that filed, insert the specified default value.
 
 Create exploits the `RETURNING` clause of PostgreSQL to fetch the new row and update the DBModel passed as argument.
 
@@ -309,7 +382,7 @@ INSERT INTO posts("from","to",pid,message,lang) VALUES ($1,$2,$3,$4,$5)  RETURNI
 
 The resulting row (the result of `RETURNING`) is used as a source for the  `Scan` method, having the DBModel as argument.
 
-Thus, in the example, the varialble post.Time has the `(now() at time zone 'utc')` evaluation result value.
+Thus, in the example, the variable post.Time has the `(now() at time zone 'utc')` evaluation result value.
 
 ### Delete
 
@@ -321,11 +394,11 @@ Updates uses the same logic of [Create](#create) (thus the default value handlin
 
 The only difference is that Updates `UPDATE` rows.
 
-`Update` tries to infer the table name from the DBModel passed as argument __if__ a `Where` clause has not been specified. Oterwise uses the `Where` clause to generate the `WHERE` part and the Model to generate the `field = $n` part.
+`Update` tries to infer the table name from the DBModel passed as argument __if__ a `Where` clause has not been specified. Otherwise uses the `Where` clause to generate the `WHERE` part and the Model to generate the `field = $n` part.
 
 ```go
 var user User
-db.First(&user, 1) // hanlde errors
+db.First(&user, 1) // handle errors
 user.Username = "username changed"
 
 db.Updates(&user)
@@ -392,7 +465,7 @@ See [Scan and Find methods](#scan-and-find-methods)
 
 ### Raw
 
-Prepares and executes a raw query, the results is avaiable for the Scan method.
+Prepares and executes a raw query, the results is available for the Scan method.
 
 See [Scan and Find methods](#scan-and-find-methods)
 
@@ -426,7 +499,7 @@ tx.Exec(`CREATE TABLE users (
 tx.Commit()
 ```
 
-`Exec` does not use prepared statements if there are no paremeters to replace in the query. This make it possible to use a single call to `Exec` to execute multiple statements `;`-terminated. e.g.
+`Exec` does not use prepared statements if there are no parameters to replace in the query. This make it possible to use a single call to `Exec` to execute multiple statements `;`-terminated. e.g.
 
 ```go
 tx.Exec(`DROP TABLE IF EXISTS users;
@@ -650,7 +723,7 @@ In igor:
    - slice of struct `.Scan(&sliceOfStruct)`
    - single struct `.Scan(&singleStruct)`
    - single value `.Scan(&integerType)`
-   - a comma separated list of values (because `Scan` is a variadic arguments function) `.Scan(&firstInteger, &firstString, &secondInteger, &floatDestinaton)`
+   - a comma separated list of values (because `Scan` is a variadic arguments function) `.Scan(&firstInteger, &firstString, &secondInteger, &floatDestination)`
 
 - `Find` method does not exists, is completely replaced by `Scan`.
 
@@ -871,7 +944,7 @@ go test
 ```
 
 ### License
-Copyright 2016-2022 Paolo Galeone. All right reserved.
+Copyright 2016-2023 Paolo Galeone. All right reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
