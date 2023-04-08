@@ -1,5 +1,5 @@
 /*
-Copyright 2016-2022 Paolo Galeone. All right reserved.
+Copyright 2016-2023 Paolo Galeone. All right reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -91,7 +91,7 @@ func (db *Database) Joins(joins string) *Database {
 }
 
 // Table appends the table string to FROM. It has the same behavior of Model, but
-// passing the tablename directly as a string
+// passing the table name directly as a string
 func (db *Database) Table(table string) *Database {
 	db = db.clone()
 	db.tables = append(db.tables, handleIdentifier(table))
@@ -115,8 +115,8 @@ func (db *Database) CTE(cte string, args ...interface{}) *Database {
 }
 
 // Delete executes DELETE FROM value.TableName where .Where()
-// Calling .Where is mandatory. You can pass a nil pointer to value if you just setted
-// the tablename with Model.
+// Calling .Where is mandatory. You can pass a nil pointer to value if you just set
+// the table name with Model.
 func (db *Database) Delete(value DBModel) error {
 	defer db.clear()
 	// if Model has been called, skip table name inference procedure
@@ -256,9 +256,9 @@ func (db *Database) Scan(dest ...interface{}) error {
 	if db.rawRows == nil {
 		// Compile query
 		var stmt *sql.Stmt
-		// If the destionation is a struct (or a slice of struct)
+		// If the destination is a struct (or a slice of struct)
 		// select should select only exported sql fields in the order declared in the struct
-		// This thing should go only if the user does not selected with .Select the fields to export
+		// This thing should go only if the user does not selected with `.Select` the fields to export
 		// Thus only if db.selectFields == ""
 		if db.selectFields == "" {
 			if ld == 1 { // if is a struct or a slice of struct
@@ -266,7 +266,7 @@ func (db *Database) Scan(dest ...interface{}) error {
 				case reflect.Struct:
 					db.selectFields = strings.Join(getSQLFields(destIndirect.Interface().(DBModel)), ",")
 				case reflect.Slice:
-					// hanlde slice of structs and slice of pointers to struct
+					// handle slice of structs and slice of pointers to struct
 					sliceType := destIndirect.Type().Elem()
 					if sliceType.Kind() == reflect.Ptr {
 						return errors.New("do not use a slice of pointers. Use a slice of real values. E.g. use []int instead of []*int")
@@ -303,13 +303,13 @@ func (db *Database) Scan(dest ...interface{}) error {
 
 	if ld == 1 {
 		// if is a slice, find first element to decide how to use scan
-		// oterwhise use destIndirect
+		// otherwise use destIndirect
 		var defaultElem reflect.Value
 		var slicePtr reflect.Value
 		switch destIndirect.Kind() {
 		// slice
 		case reflect.Slice:
-			// create a new element, because slice usually is empty. Thus we have to dinamically create it
+			// create a new element, because slice usually is empty. Thus we have to dynamically create it
 			defaultElem = reflect.Indirect(reflect.New(destIndirect.Type().Elem()))
 			// Create a pointer to a slice value and set it to the slice
 			realSlice := reflect.ValueOf(dest[0])
@@ -324,7 +324,21 @@ func (db *Database) Scan(dest ...interface{}) error {
 			fields := []reflect.StructField{}
 			getFields(defaultElem.Interface(), &fields)
 			for _, field := range fields {
-				interfaces = append(interfaces, reflect.Indirect(defaultElem.FieldByName(field.Name)).Addr().Interface())
+				fieldIndirect := reflect.Indirect(reflect.Indirect(destIndirect.Addr()).FieldByName(field.Name))
+				switch fieldIndirect.Kind() {
+				// A field can be a slice of values (e.g. SQL `[]text`)
+				case reflect.Slice:
+					valueOfPtrType := fieldIndirect.Interface()
+					typeOfPtr := reflect.TypeOf(valueOfPtrType)
+					newPointerVariable := reflect.New(typeOfPtr)
+					newPointedVariable := newPointerVariable.Elem()
+					realSlice := reflect.New(newPointedVariable.Type()).Elem().Interface()
+					slicePtr := &realSlice
+					interfaces = append(interfaces, slicePtr)
+				default:
+					interfaces = append(interfaces, reflect.Indirect(defaultElem.FieldByName(field.Name)).Addr().Interface())
+				}
+
 			}
 		} else {
 			// else convert defaultElem into interfaces, use the address
@@ -339,9 +353,6 @@ func (db *Database) Scan(dest ...interface{}) error {
 			// append result to dest (if the destination is a slice)
 			if slicePtr.IsValid() {
 				destIndirect.Set(reflect.Append(destIndirect, reflect.Indirect(defaultElem)))
-				//x := reflect.Indirect(slicePtr.Elem())
-				//x.Set(reflect.Append(x, reflect.ValueOf(defaultElem.Interface())))
-				//defaultElem = reflect.Zero(destIndirect.Type().Elem())
 			}
 		}
 	} else {
@@ -399,7 +410,7 @@ func (db *Database) Where(s interface{}, args ...interface{}) *Database {
 		// this must become: a = $1 and b in ($2, $3, $4, $5)
 		var slicePos []int
 
-		// since I'm looping through args, I'll build the whereFileds with expanded slices if present
+		// since I'm looping through args, I'll build the whereFields with expanded slices if present
 		var whereArgsExtended []interface{}
 		for i := 0; i < len(args); i++ {
 			if reflect.TypeOf(args[i]).Kind() == reflect.Slice {
@@ -452,7 +463,7 @@ func (db *Database) Where(s interface{}, args ...interface{}) *Database {
 		in := getStruct(s)
 		key, value := primaryKey(s)
 
-		// if a model has not been setted, set the model as s.TableName()
+		// if a model has not been set, set the model as s.TableName()
 		if len(db.tables) == 0 {
 			db = db.Model(s.(DBModel))
 		}

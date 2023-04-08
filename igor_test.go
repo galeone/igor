@@ -1,5 +1,5 @@
 /*
-Copyright 2016-2022 Paolo Galeone. All right reserved.
+Copyright 2016-2023 Paolo Galeone. All right reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -88,8 +88,10 @@ func (User) TableName() string {
 }
 
 type NestMe struct {
-	ID          int64 `igor:"primary_key"`
-	OverwriteMe int64
+	ID            int64 `igor:"primary_key"`
+	OverwriteMe   int64
+	SliceOfString []string
+	SliceOfInt64  []int64
 }
 
 type NestTable struct {
@@ -97,6 +99,7 @@ type NestTable struct {
 	OverwriteMe int64 `sql:"-"`
 }
 
+// TableName returns the table name associated with the structure
 func (NestTable) TableName() string {
 	return "nest_table"
 }
@@ -180,7 +183,7 @@ func init() {
 		panic(e.Error())
 	}
 
-	e = tx.Exec("CREATE TABLE nest_table(id bigserial not null PRIMARY KEY)")
+	e = tx.Exec("CREATE TABLE nest_table(id bigserial not null PRIMARY KEY, slice_of_string text[] not null, slice_of_int64 bigint[] not null)")
 	if e != nil {
 		panic(e.Error())
 	}
@@ -241,6 +244,8 @@ func TestPanicWhenCallingOnEmptyModel(t *testing.T) {
 func TestCreateWithNestedStruct(t *testing.T) {
 	row := NestTable{}
 	row.ID = 1
+	row.SliceOfInt64 = []int64{1, 2}
+	row.SliceOfString = []string{"slice", "support yeah"}
 	if e = db.Create(&row); e != nil {
 		t.Errorf("Inserting a new row with a type that uses a nested struct should be possible. But got %v", e)
 	}

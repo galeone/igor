@@ -1,5 +1,5 @@
 /*
-Copyright 2016-2022 Paolo Galeone. All right reserved.
+Copyright 2016-2023 Paolo Galeone. All right reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,8 +27,7 @@ import (
 	"strings"
 	"unicode"
 
-	// Blank import required to get PostgreSQL working
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
 // Reserved keywords that shouldn't be used as column name or other identifiers
@@ -249,7 +248,13 @@ func (db *Database) commonCreateUpdate(value DBModel, builder func() string) err
 		field := in.FieldByName(structField.Name)
 		if value := fieldValue(field, structField); value != nil {
 			db.updateCreateFields = append(db.updateCreateFields, getColumnName(structField))
-			db.updateCreateValues = append(db.updateCreateValues, value)
+			var pqVal interface{}
+			if reflect.ValueOf(value).Kind() == reflect.Slice {
+				pqVal = pq.Array(value)
+			} else {
+				pqVal = value
+			}
+			db.updateCreateValues = append(db.updateCreateValues, pqVal)
 		}
 	}
 
@@ -266,6 +271,8 @@ func (db *Database) commonCreateUpdate(value DBModel, builder func() string) err
 	if db.rawRows, err = stmt.Query(append(db.updateCreateValues, db.whereValues...)...); err != nil {
 		return err
 	}
+	// Use the new struct with the fields lib/pq compatible for slices
+	// e.g. pq.Array/pg.StringArray instead of []string and similar
 	if err = db.Scan(value); err != nil {
 		panic(err)
 	}
@@ -291,7 +298,7 @@ func (db *Database) replaceMarks(in string) string {
 // primaryKey returns the pair (key, value) representing the defined primary key field
 // (key) and its value (value), when the `sql` struct tag field is defined and is value is not blank
 // returns empty key if a key is not present and thus en empty value
-// oterwise returns the key and the value (if present, i.e. is not blank)
+// otherwise returns the key and the value (if present, i.e. is not blank)
 // returned Key is the Name of the field. Not following the sql conventions but the go convention.
 // If you need to change this value (and you usually do), parse key with handleIdentifier
 func primaryKey(s interface{}) (key string, value interface{}) {
@@ -341,7 +348,7 @@ func namingConvention(name string) string {
 }
 
 // getColumnName returns the column name of the specified field of the struct
-// it's the name of the field if the field has not a `igor:column` value spcified
+// it's the name of the field if the field has not a `igor:column` value specified
 // the field is a valid sql value (thus in case, the name is escaped using handleIdentifier)
 func getColumnName(field reflect.StructField) (fieldName string) {
 	ts := parseTagSetting(field.Tag.Get("igor"))
@@ -561,7 +568,7 @@ func (db *Database) buildCreate() string {
 	// field1,file2,...
 	createSize := len(db.updateCreateFields)
 	if createSize == 0 {
-		db.panicLog("Unable to detect fields for Create. Ensure that you're passing values for all the fiels that have no default value. e.g. sql:'default:something'")
+		db.panicLog("Unable to detect fields for Create. Ensure that you're passing values for all the fields that have no default value. e.g. sql:'default:something'")
 	}
 
 	query.WriteString(strings.Join(db.updateCreateFields, ","))
