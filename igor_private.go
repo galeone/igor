@@ -271,48 +271,11 @@ func (db *Database) commonCreateUpdate(value DBModel, builder func() string) err
 	if db.rawRows, err = stmt.Query(append(db.updateCreateValues, db.whereValues...)...); err != nil {
 		return err
 	}
-	/*
-		for k, v := range changeType {
-			for id, field := range fields {
-				if field.Name == k {
-					fields[id] = reflect.StructField{
-						Name: k,
-						Type: v.new, // Set the new type
-					}
-					break
-				}
-			}
-		}
-	*/
 	// Use the new struct with the fields lib/pq compatible for slices
 	// e.g. pq.Array/pg.StringArray instead of []string and similar
-	//clone := reflect.New(reflect.StructOf(fields)).Interface()
 	if err = db.Scan(value); err != nil {
 		panic(err)
 	}
-	/*
-		// After the scan, we need to convert from the pg-fields
-		// to the plain go fields (only for slices previously converted)
-		valueOfInput := reflect.Indirect(reflect.ValueOf(value))
-		for _, field := range fields {
-			// Retrieved val
-			retrievedField := reflect.Indirect(reflect.ValueOf(clone)).FieldByName(field.Name).Interface()
-			if t, ok := changeType[field.Name]; ok {
-				fieldToUpdate := valueOfInput.FieldByName(field.Name)
-				valueToCast := reflect.ValueOf(retrievedField).Interface()
-				switch t.old.Elem().Kind() {
-				case reflect.String:
-					fieldToUpdate.Set(reflect.ValueOf(valueToCast.([]string)))
-				case reflect.Int64:
-					fieldToUpdate.Set(reflect.ValueOf(valueToCast.([]int64)))
-				default:
-					db.panicLog(fmt.Sprintf("Unsupported slice of %v", t.old.Elem().Kind()))
-				}
-			} else {
-				valueOfInput.FieldByName(field.Name).Set(reflect.ValueOf(retrievedField))
-			}
-		}
-	*/
 	return nil
 }
 
