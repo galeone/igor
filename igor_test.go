@@ -16,6 +16,7 @@ limitations under the License.
 package igor_test
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
@@ -80,6 +81,8 @@ type User struct {
 	RegistrationTime time.Time `sql:"default:(now() at time zone 'utc')"`
 	// Relation. Manually fill the field when required
 	Profile Profile `sql:"-"`
+	// Nullable foreign key relationship
+	OtherTableID sql.NullInt64
 }
 
 // TableName returns the table name associated with the structure
@@ -121,11 +124,17 @@ func init() {
 		panic(e.Error())
 	}
 
-	e = tx.Exec("DROP TABLE IF EXISTS nest_table CASCADE")
+	e = tx.Exec("DROP TABLE IF EXISTS nest_table CASCADE; DROP TABLE IF EXISTS other_table CASCADE;")
 	if e != nil {
 		panic(e.Error())
 	}
-	e = tx.Exec(`CREATE TABLE users (
+	e = tx.Exec(`
+	CREATE TABLE other_table(
+		id bigserial not null primary key,
+		random_value text
+	);
+
+	CREATE TABLE users (
     counter bigserial NOT NULL PRIMARY KEY,
     last timestamp without time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
     notify_story jsonb DEFAULT '{}'::jsonb NOT NULL,
@@ -143,7 +152,9 @@ func init() {
     viewonline boolean DEFAULT true NOT NULL,
     remote_addr inet DEFAULT '127.0.0.1'::inet NOT NULL,
     http_user_agent text DEFAULT ''::text NOT NULL,
-    registration_time timestamp(0) with time zone DEFAULT now() NOT NULL
+    registration_time timestamp(0) with time zone DEFAULT now() NOT NULL,
+	-- NULLABLE FK
+	other_table_id bigint references other_table(id)
 	)`)
 	if e != nil {
 		panic(e.Error())

@@ -104,6 +104,7 @@ var reservedKeywords = []string{
 	"national",
 	"nchar",
 	"none",
+	"normalize",
 	"not",
 	"null",
 	"nullif",
@@ -155,10 +156,12 @@ var reservedKeywords = []string{
 	"xmlelement",
 	"xmlexists",
 	"xmlforest",
+	"xmlnamespaces",
 	"xmlparse",
 	"xmlpi",
 	"xmlroot",
 	"xmlserialize",
+	"xmltable",
 }
 
 // clear is called at the end of every query, to clean up the db structure
