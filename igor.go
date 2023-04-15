@@ -231,13 +231,6 @@ func (db *Database) First(dest DBModel, key interface{}) error {
 	if err := db.Model(dest).Where(destCopy.Interface()).Scan(dest); err != nil {
 		return err
 	}
-
-	// If dest it's not updated (changed), then there were no rows fetched. Thus return
-	// an error since one that uses First (with a primary key) expects to get a value
-	empty := reflect.New(destIndirect.Type()).Elem()
-	if reflect.DeepEqual(destIndirect.Interface(), empty.Interface()) {
-		return errors.New("no rows fetched with First, given the specified key")
-	}
 	return nil
 }
 
@@ -345,7 +338,9 @@ func (db *Database) Scan(dest ...interface{}) error {
 			interfaces = append(interfaces, defaultElem.Addr().Interface())
 		}
 
+		fetchedRows := false
 		for rows.Next() {
+			fetchedRows = true
 			// defaultElem fields are filled by Scan (scan result into fields as variadic arguments)
 			if err = rows.Scan(interfaces...); err != nil {
 				return err
@@ -355,12 +350,20 @@ func (db *Database) Scan(dest ...interface{}) error {
 				destIndirect.Set(reflect.Append(destIndirect, reflect.Indirect(defaultElem)))
 			}
 		}
+		if !fetchedRows {
+			return errors.New("no rows fetched, empty result, nothing to scan")
+		}
 	} else {
 		// Scan(field1, field2, ...)
+		fetchedRows := false
 		for rows.Next() {
+			fetchedRows = true
 			if err = rows.Scan(dest...); err != nil {
 				return err
 			}
+		}
+		if !fetchedRows {
+			return errors.New("no rows fetched, empty result, nothing to scan")
 		}
 	}
 	return nil
