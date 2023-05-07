@@ -317,7 +317,13 @@ func (db *Database) Scan(dest ...interface{}) error {
 			fields := []reflect.StructField{}
 			getFields(defaultElem.Interface(), &fields)
 			for _, field := range fields {
-				fieldIndirect := reflect.Indirect(reflect.Indirect(destIndirect.Addr()).FieldByName(field.Name))
+				var fieldIndirect reflect.Value
+				if destIndirect.Kind() == reflect.Slice {
+					fieldIndirect = reflect.Indirect(reflect.Indirect(defaultElem.FieldByName(field.Name)))
+				} else {
+					fieldIndirect = reflect.Indirect(reflect.Indirect(destIndirect.Addr()).FieldByName(field.Name))
+				}
+
 				switch fieldIndirect.Kind() {
 				// A field can be a slice of values (e.g. SQL `[]text`)
 				case reflect.Slice:

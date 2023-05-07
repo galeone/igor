@@ -334,6 +334,14 @@ func TestJoinsTableSelectDeleteWhere(t *testing.T) {
 		createProfile(user.Counter)
 	}
 
+	var users []User
+	if e = db.Model(User{}).Scan(&users); e != nil {
+		t.Errorf("Scan on structs should work but got: %s\n", e.Error())
+	}
+	if len(users) != 6 {
+		t.Errorf("Expected 6 users but got: %d\n", len(users))
+	}
+
 	var fetchedIds []uint64
 	if e = db.Model(User{}).Order("counter asc").Pluck("counter", &fetchedIds); e != nil {
 		t.Errorf("Pluck should work but got: %s\n", e.Error())
