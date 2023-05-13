@@ -316,6 +316,13 @@ func (db *Database) Scan(dest ...interface{}) error {
 		if defaultElem.Kind() == reflect.Struct {
 			fields := []reflect.StructField{}
 			getFields(defaultElem.Interface(), &fields)
+			// If there are no fields, and the destination of scan is just a variable
+			// it means that it is a struct, but this struct doesn't contain igor decorations
+			// The most common example is the .Scan(&time) (with time of type time.Time).
+			// In this case, we have to pass the address of the variable to scan, like in the else of the parent if statement.
+			if len(fields) == 0 {
+				interfaces = append(interfaces, defaultElem.Addr().Interface())
+			}
 			for _, field := range fields {
 				var fieldIndirect reflect.Value
 				if destIndirect.Kind() == reflect.Slice {
@@ -337,7 +344,6 @@ func (db *Database) Scan(dest ...interface{}) error {
 				default:
 					interfaces = append(interfaces, reflect.Indirect(defaultElem.FieldByName(field.Name)).Addr().Interface())
 				}
-
 			}
 		} else {
 			// else convert defaultElem into interfaces, use the address
