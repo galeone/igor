@@ -113,8 +113,19 @@ func init() {
 		panic("Connect with a wrong connection string should fail, but succeeded")
 	}
 
-	if db, e = igor.Connect("host=localhost port=5432 user=igor dbname=igor password=igor sslmode=disable connect_timeout=10"); e != nil {
+	connectionString := "host=localhost port=5432 user=igor dbname=igor password=igor sslmode=disable connect_timeout=10"
+	if db, e = igor.Connect(connectionString); e != nil {
 		panic(e.Error())
+	}
+
+	// Test igor.Wrap
+	var connection *sql.DB
+	if connection, e = sql.Open("postgres", connectionString); e != nil {
+		panic(fmt.Sprintf("unable to connect to the databse with default connection string: %s", connectionString))
+	}
+
+	if _, e := igor.Wrap(connection); e != nil {
+		panic(fmt.Sprintf("Wrap: %s", e))
 	}
 
 	// Exec raw query to create tables and test transactions (and Exec)

@@ -68,6 +68,25 @@ func Connect(connectionString string) (*Database, error) {
 	return db, nil
 }
 
+// Wrap wraps a sql.DB connection to an igor.Database
+func Wrap(connection *sql.DB) (*Database, error) {
+	if connection == nil {
+		return nil, errors.New("Wrap: database connection is nil")
+	}
+	var e error
+	db := new(Database)
+
+	// Ping the database to see if the connection is real
+	if e = connection.Ping(); e != nil {
+		return nil, errors.New("Connection failed. Unable to ping the DB: " + e.Error())
+	}
+
+	db.db = connection
+
+	db.clear()
+	return db, nil
+}
+
 // Log sets the query logger
 func (db *Database) Log(logger *log.Logger) *Database {
 	db.logger = logger
