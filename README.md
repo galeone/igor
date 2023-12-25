@@ -249,8 +249,10 @@ __Warning__: use it with the [Table](#table) method.
 
 ```go
 var usernames []string
+var ids []uint64 // fill them - not the usage of = any since this is converted to a pq.Array
+
 db.CTE(`WITH full_users_id AS (
-SELECT counter FROM users WHERE name = ?)`, "Paolo").
+SELECT counter FROM users WHERE name = ? AND counter = any(?))`, "Paolo", ids).
 Table("full_users_id as fui").
 Select("username").
 Joins("JOIN users ON fui.counter = users.counter").Scan(&usernames)
@@ -259,9 +261,9 @@ Joins("JOIN users ON fui.counter = users.counter").Scan(&usernames)
 it generates:
 ```sql
 WITH full_users_id AS (
-  SELECT counter FROM users WHERE name = $1
+	SELECT counter FROM users WHERE name = $1 AND counter = any($2)
 )
-SELECT username FROM full_users_id as fui JOIN users ON fui.counter = users.counter ;
+SELECT username FROM full_users_id as fui JOIN users ON fui.counter = users.counter;
 ```
 
 ### Select

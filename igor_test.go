@@ -375,7 +375,6 @@ func TestJoinsTableSelectDeleteWhere(t *testing.T) {
 		Where(&User{Counter: 4}).Scan(&one, &two, &three, &four); e != nil {
 		t.Error(e.Error())
 	}
-	db.Log(nil)
 
 	if one != 1 || two != 2 || three != 3 || four != 4 {
 		t.Errorf("problem in scanning results, expected 1,2,3,4 got: %d,%d,%d,%d", one, two, three, four)
@@ -404,6 +403,7 @@ func TestJoinsTableSelectDeleteWhere(t *testing.T) {
 }
 
 func TestJSON(t *testing.T) {
+	t.Parallel()
 	user := createUser()
 	var emptyJSON = make(igor.JSON)
 
@@ -450,6 +450,7 @@ func TestJSON(t *testing.T) {
 }
 
 func TestNotifications(t *testing.T) {
+	t.Parallel()
 	count := 0
 	if e = db.Listen("notification_without_payload", func(payload ...string) {
 		count++
@@ -511,12 +512,15 @@ func TestNotifications(t *testing.T) {
 }
 
 func TestCTE(t *testing.T) {
-	createUser()
-	createUser()
-	createUser()
+	t.Parallel()
+	var ids []uint64
+	ids = append(ids, createUser().Counter)
+	ids = append(ids, createUser().Counter)
+	ids = append(ids, createUser().Counter)
+
 	var usernames []string
 	e = db.CTE(`WITH full_users_id AS (
-		SELECT counter FROM users WHERE name = ?)`, "Paolo").Table("full_users_id as fui").Select("username").Joins("JOIN users ON fui.counter = users.counter").Scan(&usernames)
+		SELECT counter FROM users WHERE name = ? AND counter = any(?))`, "Paolo", ids).Table("full_users_id as fui").Select("username").Joins("JOIN users ON fui.counter = users.counter").Scan(&usernames)
 	if e != nil {
 		t.Fatalf(e.Error())
 	}

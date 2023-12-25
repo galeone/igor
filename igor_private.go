@@ -239,6 +239,8 @@ func (db *Database) commonCreateUpdate(value DBModel, builder func() string) err
 	// if Model has been called, skip table name inference procedure
 	if len(db.tables) == 0 {
 		db.tables = append(db.tables, handleIdentifier(value.TableName()))
+	}
+	if len(db.models) == 0 {
 		db.models = append(db.models, value)
 	}
 
