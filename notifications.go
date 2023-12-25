@@ -76,6 +76,8 @@ func (db *Database) Listen(channel string, f func(payload ...string)) error {
 
 // Unlisten executes `UNLISTEN channel`. Unregister function f, that was registered with Listen(channel ,f).
 func (db *Database) Unlisten(channel string) error {
+	defer db.clear()
+	db = db.clone()
 	if db.listener == nil {
 		return errors.New("you must create a new listener first, calling Listen(channel)")
 	}
@@ -88,11 +90,15 @@ func (db *Database) Unlisten(channel string) error {
 
 // UnlistenAll executes `UNLISTEN *`. Thus do not receive any notification from any channel
 func (db *Database) UnlistenAll() error {
+	defer db.clear()
+	db = db.clone()
 	return db.Unlisten("*")
 }
 
 // Notify sends a notification on channel, optional payloads are joined together and comma separated
 func (db *Database) Notify(channel string, payload ...string) error {
+	defer db.clear()
+	db = db.clone()
 	pl := strings.Join(payload, ",")
 	if len(pl) > 0 {
 		return db.Exec("SELECT pg_notify(?, ?)", channel, pl)

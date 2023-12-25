@@ -43,11 +43,11 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 
-	// Blank import required to get PostgreSQL working
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
 // Connect opens the connection to PostgreSQL using connectionString
@@ -96,8 +96,14 @@ func (db *Database) Log(logger *log.Logger) *Database {
 // Model sets the table name for the current query
 func (db *Database) Model(model DBModel) *Database {
 	db = db.clone()
-	db.tables = append(db.tables, handleIdentifier(model.TableName()))
-	db.models = append(db.models, model)
+	tableSQL := handleIdentifier(model.TableName())
+	if !slices.Contains(db.tables, tableSQL) {
+		db.tables = append(db.tables, tableSQL)
+	}
+	if !slices.Contains(db.models, model) {
+		db.models = append(db.models, model)
+	}
+
 	return db
 }
 
@@ -113,7 +119,10 @@ func (db *Database) Joins(joins string) *Database {
 // passing the table name directly as a string
 func (db *Database) Table(table string) *Database {
 	db = db.clone()
-	db.tables = append(db.tables, handleIdentifier(table))
+	tableSQL := handleIdentifier(table)
+	if !slices.Contains(db.tables, tableSQL) {
+		db.tables = append(db.tables, tableSQL)
+	}
 	return db
 }
 
@@ -127,9 +136,19 @@ func (db *Database) Select(fields string, args ...interface{}) *Database {
 
 // CTE defines a Common Table Expression. Parameters are allowed
 func (db *Database) CTE(cte string, args ...interface{}) *Database {
+	db.clear() // clear everything, since CTE is the first statement
 	db = db.clone()
 	db.cte += db.replaceMarks(cte)
-	db.cteSelectValues = append(db.cteSelectValues, args...)
+
+	for _, value := range args {
+		var pqVal interface{}
+		if reflect.ValueOf(value).Kind() == reflect.Slice {
+			pqVal = pq.Array(value)
+		} else {
+			pqVal = value
+		}
+		db.cteSelectValues = append(db.cteSelectValues, pqVal)
+	}
 	return db
 }
 
@@ -257,6 +276,7 @@ func (db *Database) First(dest DBModel, key interface{}) error {
 // Panics if scan fails or the query fail
 func (db *Database) Scan(dest ...interface{}) error {
 	defer db.clear()
+	db = db.clone()
 	ld := len(dest)
 	if ld == 0 {
 		return errors.New("required at least one parameter to Scan method")
