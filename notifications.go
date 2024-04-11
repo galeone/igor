@@ -33,7 +33,7 @@ func (db *Database) Listen(channel string, f func(payload ...string)) error {
 		db.listenerCallbacks = make(map[string]func(...string))
 
 		reportProblem := func(ev pq.ListenerEventType, err error) {
-			if err != nil && db.logger != nil {
+			if err != nil {
 				db.printLog(err.Error())
 			}
 		}
@@ -48,7 +48,16 @@ func (db *Database) Listen(channel string, f func(payload ...string)) error {
 			for {
 				select {
 				case notification := <-db.listener.Notify:
-					go db.listenerCallbacks[notification.Channel](notification.Extra)
+					// Try 3 times to handle the notification. It may happen that the callback is not yet registered
+					// and the notification has been sent before the callback has been registered
+					for i := 0; i < 3; i++ {
+						if callback, ok := db.listenerCallbacks[notification.Channel]; ok {
+							go callback(notification.Extra)
+							break
+						}
+						db.printLog(fmt.Sprintf("[%d] Unhandled notification on channel %s with payload %s. Callback not registered\n", i+1, notification.Channel, notification.Extra))
+						time.Sleep(5 * time.Second)
+					}
 				case <-time.After(90 * time.Second):
 					go func() {
 						if db.listener.Ping() != nil {
