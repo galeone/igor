@@ -402,7 +402,7 @@ func (db *Database) Scan(dest ...interface{}) error {
 			}
 		}
 		if !fetchedRows {
-			return errors.New("no rows fetched, empty result, nothing to scan")
+			return sql.ErrNoRows
 		}
 	} else {
 		// Scan(field1, field2, ...)
@@ -414,7 +414,7 @@ func (db *Database) Scan(dest ...interface{}) error {
 			}
 		}
 		if !fetchedRows {
-			return errors.New("no rows fetched, empty result, nothing to scan")
+			return sql.ErrNoRows
 		}
 	}
 	return nil

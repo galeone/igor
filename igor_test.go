@@ -17,6 +17,7 @@ package igor_test
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -271,6 +272,18 @@ func TestCreateWithNestedStruct(t *testing.T) {
 	if e = db.Create(&row); e != nil {
 		t.Errorf("Inserting a new row with a type that uses a nested struct should be possible. But got %v", e)
 	}
+}
+
+func TestScanWithEmptyResult(t *testing.T) {
+	// scan with empty result should fail
+	user := User{}
+	if e = db.Model(User{}).Where(&User{Counter: 9999}).Scan(&user); e == nil {
+		t.Error("Scan with no parameters should fail, but succeeded")
+	}
+	if !errors.Is(e, sql.ErrNoRows) {
+		t.Errorf("Scan with no parameters should return EmptyResults error, but got: %s\n", e)
+	}
+
 }
 
 func TestModelCreateUpdatesSelectDelete(t *testing.T) {
