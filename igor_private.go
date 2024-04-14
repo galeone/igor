@@ -278,10 +278,7 @@ func (db *Database) commonCreateUpdate(value DBModel, builder func() string) err
 	}
 	// Use the new struct with the fields lib/pq compatible for slices
 	// e.g. pq.Array/pg.StringArray instead of []string and similar
-	if err = db.Scan(value); err != nil {
-		panic(err)
-	}
-	return nil
+	return db.Scan(value)
 }
 
 // replaceMarks replace question marks (?) with the PostgreSQL variable identifier
